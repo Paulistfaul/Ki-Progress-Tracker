@@ -74,9 +74,28 @@
     .day .date { font-weight: 600; }
     .day.past.missed { background: #fdecea; }
     .day.past.done { background: #e8f5e9; }
-    #taskSection { display: none; background: var(--card-bg); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); }
-    #taskForm input, #taskForm button { width: 100%; margin-bottom: .5rem; font-family: 'Inter', sans-serif; }
-    .task-item { display: flex; align-items: center; justify-content: space-between; padding: .5rem; background: var(--background); border-radius: var(--radius); margin-bottom: .4rem; }
+    #taskSection {
+      display: none;
+      background: var(--card-bg);
+      padding: 1rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-top: 1rem;
+    }
+    #taskForm input, #taskForm button {
+      width: 100%;
+      margin-bottom: .5rem;
+      font-family: 'Inter', sans-serif;
+    }
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .5rem;
+      background: var(--background);
+      border-radius: var(--radius);
+      margin-bottom: .4rem;
+    }
     .task-item span { flex: 1; margin-left: .5rem; }
   </style>
 </head>
@@ -90,13 +109,16 @@
         <div class="card"><div class="value" id="level">--</div><div class="label">Level</div></div>
       </div>
     </header>
+
     <div class="controls">
       <button id="authorize_button">Calendar verbinden</button>
       <button id="signout_button" style="display:none;">Abmelden</button>
     </div>
+
     <div id="calendar"></div>
+
     <div id="taskSection">
-      <button id="backBtn">Zurück zur Übersicht</button>
+      <button id="backBtn">Zurück zur Übersicht</button><br>
       <form id="taskForm">
         <input type="text" id="taskDesc" placeholder="Aufgabe Beschreibung" required />
         <input type="date" id="taskDate" required />
@@ -110,10 +132,12 @@
   <script>
     // Passwort & Startdatum
     if(!localStorage.getItem('pwVerified')){
-      const pw=prompt('Passwort eingeben:'); if(pw!=='2610'){alert('Falsches Passwort');throw 'Abbruch';}
+      const pw=prompt('Passwort eingeben:');
+      if(pw!=='2610'){ alert('Falsches Passwort'); throw 'Abbruch'; }
       localStorage.setItem('pwVerified','true');
     }
-    if(!localStorage.getItem('startDate')) localStorage.setItem('startDate',new Date().toISOString());
+    if(!localStorage.getItem('startDate'))
+      localStorage.setItem('startDate', new Date().toISOString());
 
     // Stats berechnen
     const startDate=new Date(localStorage.getItem('startDate'));
@@ -126,83 +150,149 @@
     document.getElementById('monthProgress').textContent=`${currentMonth} / 10`;
     document.getElementById('level').textContent=levels[levelIndex-1];
 
-    // Google API (replace CLIENT_ID & API_KEY)
-    const CLIENT_ID='<828803560489-gp7afdiddlv2iq10jttv48ufqrva7d27.apps.googleusercontent.com>'; const API_KEY='<AIzaSyASHlFIrs6AAxbO_Ac1utyBQqHLD6em_hQ>';
-    const DISCOVERY_DOCS=['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
-    const SCOPES='https://www.googleapis.com/auth/calendar.events';
-    const authorizeButton=document.getElementById('authorize_button');
-    const signoutButton=document.getElementById('signout_button');
-    function handleClientLoad(){gapi.load('client:auth2',initClient);}  
-    function initClient(){
-      gapi.client.init({apiKey:API_KEY,clientId:CLIENT_ID,discoveryDocs:DISCOVERY_DOCS,scope:SCOPES})
-      .then(()=>{gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());authorizeButton.onclick=()=>gapi.auth2.getAuthInstance().signIn();signoutButton.onclick=()=>gapi.auth2.getAuthInstance().signOut();});
+    // Google API Zugangsdaten
+    // Ersetze hier mit deinen echten Daten:
+    // Beispiel Client ID: 1234567890-abcdefghi.apps.googleusercontent.com
+    // Beispiel API Key:  AIzaSyD-EXAMPLE1234567890
+    const CLIENT_ID = '<828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com>';
+    const API_KEY   = '<AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I>';
+    const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
+    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+
+    const authorizeButton = document.getElementById('authorize_button');
+    const signoutButton  = document.getElementById('signout_button');
+
+    function handleClientLoad() {
+      gapi.load('client:auth2', initClient);
     }
-    function updateSigninStatus(isSignedIn){if(isSignedIn){authorizeButton.style.display='none';signoutButton.style.display='inline-block';}else{authorizeButton.style.display='inline-block';signoutButton.style.display='none';}}
-    window.onload=handleClientLoad;
+    function initClient() {
+      gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: DISCOVERY_DOCS,
+        scope: SCOPES
+      }).then(() => {
+        const auth = gapi.auth2.getAuthInstance();
+        auth.isSignedIn.listen(updateSigninStatus);
+        updateSigninStatus(auth.isSignedIn.get());
+        authorizeButton.onclick = () => auth.signIn();
+        signoutButton.onclick  = () => auth.signOut();
+      });
+    }
+    function updateSigninStatus(isSignedIn) {
+      if (isSignedIn) {
+        authorizeButton.style.display='none';
+        signoutButton.style.display='inline-block';
+      } else {
+        authorizeButton.style.display='inline-block';
+        signoutButton.style.display='none';
+      }
+    }
+    window.onload = handleClientLoad;
 
     // Kalender & Tasks
-    const calendarEl=document.getElementById('calendar');
-    const taskSection=document.getElementById('taskSection');
-    const backBtn=document.getElementById('backBtn');
-    const taskForm=document.getElementById('taskForm');
-    let selectedDate=null;
-    const records=JSON.parse(localStorage.getItem('records')||'{}');
-    const tasks=JSON.parse(localStorage.getItem('tasks')||'{}');
-    const tasksDone=JSON.parse(localStorage.getItem('tasksDone')||'{}');
+    const calendarEl  = document.getElementById('calendar');
+    const taskSection = document.getElementById('taskSection');
+    const backBtn     = document.getElementById('backBtn');
+    const taskForm    = document.getElementById('taskForm');
+    let selectedDate  = null;
+    const records     = JSON.parse(localStorage.getItem('records')||'{}');
+    const tasks       = JSON.parse(localStorage.getItem('tasks')||'{}');
+    const tasksDone   = JSON.parse(localStorage.getItem('tasksDone')||'{}');
 
-    function renderCalendar(){
-      calendarEl.innerHTML='';
-      const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-      for(let d=1;d<=daysInMonth;d++){
-        const day=new Date(now.getFullYear(),now.getMonth(),d);
-        const dateStr=day.toISOString().slice(0,10);
-        const el=document.createElement('div'); el.className='day';
-        el.innerHTML=`<span class="date">${d}</span>`;
-        const past=day<new Date().setHours(0,0,0,0);
-        if(past) el.classList.add('past');
-        if(records[dateStr]) el.classList.add('done');
-        else if(past) el.classList.add('missed');
-        el.onclick=()=>openTasks(dateStr);
-        el.ondblclick=()=>{if(past){records[dateStr]=!records[dateStr];localStorage.setItem('records',JSON.stringify(records));renderCalendar();}};
+    function renderCalendar() {
+      calendarEl.innerHTML = '';
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+      for (let d=1; d<=daysInMonth; d++) {
+        const day = new Date(now.getFullYear(), now.getMonth(), d);
+        const dateStr = day.toISOString().slice(0,10);
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.innerHTML = `<span class="date">${d}</span>`;
+        const past = day < new Date().setHours(0,0,0,0);
+        if (past) el.classList.add('past');
+        if (records[dateStr]) el.classList.add('done');
+        else if (past) el.classList.add('missed');
+        el.onclick = () => openTasks(dateStr);
+        el.ondblclick = () => {
+          if (past) {
+            records[dateStr] = !records[dateStr];
+            localStorage.setItem('records', JSON.stringify(records));
+            renderCalendar();
+          }
+        };
         calendarEl.appendChild(el);
       }
     }
     renderCalendar();
 
-    function openTasks(dateStr){
-      selectedDate=dateStr;
-      calendarEl.style.display='none';document.querySelector('.controls').style.display='none';taskSection.style.display='block';
-      document.getElementById('taskDate').value=dateStr;
+    function openTasks(dateStr) {
+      selectedDate = dateStr;
+      calendarEl.style.display = 'grid';
+      calendarEl.style.display = 'none';
+      document.querySelector('.controls').style.display = 'none';
+      taskSection.style.display = 'block';
+      document.getElementById('taskDate').value = dateStr;
       renderTasks();
     }
-    backBtn.onclick=()=>{calendarEl.style.display='grid';document.querySelector('.controls').style.display='flex';taskSection.style.display='none';};
-
-    taskForm.onsubmit=e=>{
-      e.preventDefault();
-      const desc=document.getElementById('taskDesc').value;
-      const date=document.getElementById('taskDate').value;
-      const time=document.getElementById('taskTime').value;
-      tasks[date]=tasks[date]||[];tasks[date].push({desc,time});
-      localStorage.setItem('tasks',JSON.stringify(tasks));renderTasks();
+    backBtn.onclick = () => {
+      calendarEl.style.display = 'grid';
+      document.querySelector('.controls').style.display = 'flex';
+      taskSection.style.display = 'none';
     };
 
-    function renderTasks(){
-      const list=tasks[selectedDate]||[];
-      const container=document.getElementById('tasksList');container.innerHTML='';
-      list.forEach((t,i)=>{
-        const div=document.createElement('div');div.className='task-item';
-        const chk=document.createElement('input');chk.type='checkbox';chk.checked=tasksDone[selectedDate]?.[i];
-        chk.onchange=()=>{tasksDone[selectedDate]=tasksDone[selectedDate]||[];tasksDone[selectedDate][i]=chk.checked;localStorage.setItem('tasksDone',JSON.stringify(tasksDone));if(tasksDone[selectedDate].filter(Boolean).length===list.length){records[selectedDate]=true;localStorage.setItem('records',JSON.stringify(records));renderCalendar();}};
-        const span=document.createElement('span');span.textContent=`${t.desc} (${t.time})`;
-        const addBtn=document.createElement('button');addBtn.textContent='→ Calendar';addBtn.onclick=()=>addEvent(t);
-        div.append(chk,span,addBtn);container.appendChild(div);
+    taskForm.onsubmit = e => {
+      e.preventDefault();
+      const desc = document.getElementById('taskDesc').value;
+      const date = document.getElementById('taskDate').value;
+      const time = document.getElementById('taskTime').value;
+      tasks[date] = tasks[date]||[];
+      tasks[date].push({desc, time});
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
+    };
+
+    function renderTasks() {
+      const list = tasks[selectedDate] || [];
+      const container = document.getElementById('tasksList');
+      container.innerHTML = '';
+      list.forEach((t, i) => {
+        const div = document.createElement('div');
+        div.className = 'task-item';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = tasksDone[selectedDate]?.[i] || false;
+        chk.onchange = () => {
+          tasksDone[selectedDate] = tasksDone[selectedDate] || [];
+          tasksDone[selectedDate][i] = chk.checked;
+          localStorage.setItem('tasksDone', JSON.stringify(tasksDone));
+          if (tasksDone[selectedDate].filter(Boolean).length === list.length) {
+            records[selectedDate] = true;
+            localStorage.setItem('records', JSON.stringify(records));
+            renderCalendar();
+          }
+        };
+        const span = document.createElement('span');
+        span.textContent = `${t.desc} (${t.time})`;
+        const btn = document.createElement('button');
+        btn.textContent = '→ Calendar';
+        btn.onclick = () => addEvent(t);
+        div.append(chk, span, btn);
+        container.appendChild(div);
       });
     }
 
-    function addEvent(task){
-      if(!gapi.auth2.getAuthInstance().isSignedIn.get())return alert('Bitte verbinden');
-      const event={summary:task.desc,start:{dateTime:`${selectedDate}T${task.time}:00`,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone},end:{dateTime:`${selectedDate}T${task.time}:00`,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone}};
-      gapi.client.calendar.events.insert({calendarId:'primary',resource:event}).then(()=>alert('Termin erstellt'));
+    function addEvent(task) {
+      if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+        return alert('Bitte verbinden');
+      }
+      const event = {
+        summary: task.desc,
+        start: { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        end:   { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+      };
+      gapi.client.calendar.events.insert({ calendarId: 'primary', resource: event })
+        .then(() => alert('Termin erstellt'));
     }
   </script>
 </body>
