@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KI Progress Tracker</title>
-  <link rel="manifest" href="manifest.json" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
     :root {
       --primary: #4CAF50;
@@ -19,89 +20,61 @@
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: var(--background);
-      color: var(--text);
+      margin: 0; font-family: 'Inter', sans-serif;
+      background: var(--background); color: var(--text);
     }
     .container {
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 1rem;
+      max-width: 480px; margin: 0 auto; padding: 1rem;
     }
     header { text-align: center; margin-bottom: 1rem; }
-    header h1 { font-size: 1.6rem; margin-bottom: .5rem; }
     .stats { display: flex; gap: .5rem; margin-bottom: 1rem; }
     .card {
-      flex: 1;
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: .75rem;
-      text-align: center;
+      flex: 1; background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: .75rem; text-align: center;
     }
     .card .value { font-size: 1.2rem; font-weight: 600; }
     .card .label { color: var(--muted); font-size: .85rem; }
     .controls { display: flex; gap: .5rem; justify-content: center; margin-bottom: 1rem; }
     button {
-      background: var(--primary);
-      color: var(--secondary);
-      border: none;
-      border-radius: var(--radius);
-      padding: .6rem 1rem;
-      font-weight: 600;
-      box-shadow: var(--shadow);
-      cursor: pointer;
-      transition: background .3s;
+      background: var(--primary); color: var(--secondary); border: none;
+      border-radius: var(--radius); padding: .6rem 1rem; font-weight: 600;
+      box-shadow: var(--shadow); cursor: pointer; transition: background .3s;
     }
-    button:hover { background: #43a047; }
+    button:disabled { opacity: .5; cursor: default; }
+    button:hover:not(:disabled) { background: #43a047; }
     #calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      margin-bottom: 1rem;
+      display: grid; grid-template-columns: repeat(7,1fr);
+      gap: 4px; margin-bottom: 1rem;
     }
     .day {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: .5rem;
-      text-align: center;
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: .5rem; text-align: center;
       cursor: pointer;
     }
-    .day .date { font-weight: 600; }
     .day.past.missed { background: #fdecea; }
-    .day.past.done { background: #e8f5e9; }
+    .day.past.done   { background: #e8f5e9; }
     #taskSection {
-      display: none;
-      background: var(--card-bg);
-      padding: 1rem;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-top: 1rem;
+      display: none; background: var(--card-bg);
+      padding: 1rem; border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-top: 1rem;
     }
     #taskForm input, #taskForm button {
-      width: 100%;
-      margin-bottom: .5rem;
-      font-family: 'Inter', sans-serif;
+      width: 100%; margin-bottom: .5rem; font-family: 'Inter', sans-serif;
     }
     .task-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: .5rem;
-      background: var(--background);
-      border-radius: var(--radius);
-      margin-bottom: .4rem;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .5rem; background: var(--background);
+      border-radius: var(--radius); margin-bottom: .4rem;
     }
     .task-item span { flex: 1; margin-left: .5rem; }
   </style>
 
-  <!-- 1) Google Identity Services -->
+  <!-- GIS für OAuth -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- 2) Google API für Calendar -->
+  <!-- Google Calendar API -->
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
+
 <body>
   <div class="container">
     <header>
@@ -112,17 +85,20 @@
         <div class="card"><div class="value" id="level">--</div><div class="label">Level</div></div>
       </div>
     </header>
+
     <div class="controls">
-      <button id="authorize_button">Kalender verbinden</button>
-      <button id="signout_button" style="display:none;">Abmelden</button>
+      <button id="authorize_button" disabled>Kalender verbinden</button>
+      <button id="signout_button" style="display:none">Abmelden</button>
     </div>
+
     <div id="calendar"></div>
+
     <div id="taskSection">
-      <button id="backBtn">Zurück zur Übersicht</button><br />
+      <button id="backBtn">Zurück zur Übersicht</button><br>
       <form id="taskForm">
-        <input type="text" id="taskDesc" placeholder="Aufgabe Beschreibung" required />
-        <input type="date" id="taskDate" required />
-        <input type="time" id="taskTime" required />
+        <input type="text" id="taskDesc" placeholder="Aufgabe Beschreibung" required>
+        <input type="date" id="taskDate" required>
+        <input type="time" id="taskTime" required>
         <button type="submit">Aufgabe hinzufügen</button>
       </form>
       <div id="tasksList"></div>
@@ -133,24 +109,24 @@
     // Passwort & Startdatum
     if (!localStorage.getItem('pwVerified')) {
       const pw = prompt('Passwort eingeben:');
-      if (pw !== '2610') { alert('Falsches Passwort'); throw 'Abbruch'; }
-      localStorage.setItem('pwVerified', 'true');
+      if (pw !== '2610') { alert('Falsches Passwort'); throw ''; }
+      localStorage.setItem('pwVerified','true');
     }
     if (!localStorage.getItem('startDate'))
       localStorage.setItem('startDate', new Date().toISOString());
 
-    // Stats berechnen
-    const startDate   = new Date(localStorage.getItem('startDate'));
-    const now         = new Date();
-    const diffDays    = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-    const currentMonth= Math.min(6, Math.floor(diffDays / 30) + 1);
-    const levelIndex  = Math.min(6, Math.ceil(currentMonth / (6 / 6)));
-    const levels      = ['Anfänger','Amateur','Fortgeschrittener','Profi','Second AI Product Owner','AI Product Owner'];
-    document.getElementById('xp').textContent            = `${diffDays * 100} XP`;
+    // Stats
+    const startDate    = new Date(localStorage.getItem('startDate'));
+    const now          = new Date();
+    const diffDays     = Math.floor((now - startDate)/(1000*60*60*24));
+    const currentMonth = Math.min(6, Math.floor(diffDays/30)+1);
+    const levelIndex   = Math.min(6, Math.ceil(currentMonth/(6/6)));
+    const levels       = ['Anfänger','Amateur','Fortgeschrittener','Profi','Second AI Product Owner','AI Product Owner'];
+    document.getElementById('xp').textContent            = `${diffDays*100} XP`;
     document.getElementById('monthProgress').textContent = `${currentMonth} / 6`;
-    document.getElementById('level').textContent         = levels[levelIndex - 1];
+    document.getElementById('level').textContent         = levels[levelIndex-1];
 
-    // Google API Zugangsdaten
+    // Google Keys
     const CLIENT_ID      = '828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
     const API_KEY        = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
     const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
@@ -160,7 +136,7 @@
     const authorizeButton = document.getElementById('authorize_button');
     const signoutButton   = document.getElementById('signout_button');
 
-    // GIS Token Client
+    // OAuth-Client (GIS)
     let tokenClient;
     function handleClientLoad() {
       gapi.load('client', initGapiClient);
@@ -172,35 +148,24 @@
             client_id: CLIENT_ID,
             scope: SCOPES,
             callback: (resp) => {
-              if (resp.error) {
-                console.error(resp);
-                return;
-              }
-              updateSigninStatus(true);
+              if (resp.error) return console.error(resp);
+              // Button aktivieren
+              authorizeButton.disabled = true;
+              signoutButton.style.display = 'inline-block';
             }
           });
+          authorizeButton.disabled = false;
+          authorizeButton.onclick = () => tokenClient.requestAccessToken({prompt:'consent'});
+          signoutButton.onclick  = () => {
+            const token = gapi.client.getToken()?.access_token;
+            if (token) google.accounts.oauth2.revoke(token);
+            gapi.client.setToken('');
+            authorizeButton.disabled = false;
+            signoutButton.style.display = 'none';
+          };
         });
     }
-    function handleAuthClick() {
-      tokenClient.requestAccessToken({ prompt: 'consent' });
-    }
-    function handleSignoutClick() {
-      const token = gapi.client.getToken()?.access_token;
-      if (token) google.accounts.oauth2.revoke(token);
-      gapi.client.setToken('');
-      updateSigninStatus(false);
-    }
-    function updateSigninStatus(signedIn) {
-      if (signedIn) {
-        authorizeButton.style.display = 'none';
-        signoutButton.style.display   = 'inline-block';
-      } else {
-        authorizeButton.style.display = 'inline-block';
-        signoutButton.style.display   = 'none';
-      }
-    }
-    authorizeButton.onclick = handleAuthClick;
-    signoutButton.onclick  = handleSignoutClick;
+    window.onload = handleClientLoad;
 
     // Kalender & Tasks (unverändert)
     const calendarEl  = document.getElementById('calendar');
@@ -208,102 +173,94 @@
     const backBtn     = document.getElementById('backBtn');
     const taskForm    = document.getElementById('taskForm');
     let selectedDate  = null;
-    const records     = JSON.parse(localStorage.getItem('records') || '{}');
-    const tasks       = JSON.parse(localStorage.getItem('tasks')   || '{}');
-    const tasksDone   = JSON.parse(localStorage.getItem('tasksDone')|| '{}');
+    const records     = JSON.parse(localStorage.getItem('records')||'{}');
+    const tasks       = JSON.parse(localStorage.getItem('tasks')  ||'{}');
+    const tasksDone   = JSON.parse(localStorage.getItem('tasksDone')||'{}');
 
     function renderCalendar() {
       calendarEl.innerHTML = '';
-      const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-      for (let d = 1; d <= daysInMonth; d++) {
-        const day     = new Date(now.getFullYear(), now.getMonth(), d);
-        const dateStr = day.toISOString().slice(0,10);
-        const el      = document.createElement('div');
-        el.className  = 'day';
-        el.innerHTML  = `<span class="date">${d}</span>`;
-        const past    = day < new Date().setHours(0,0,0,0);
-        if (past) el.classList.add('past');
-        if (records[dateStr]) el.classList.add('done');
-        else if (past) el.classList.add('missed');
-        el.onclick    = () => openTasks(dateStr);
-        el.ondblclick = () => {
-          if (past) {
-            records[dateStr] = !records[dateStr];
-            localStorage.setItem('records', JSON.stringify(records));
-            renderCalendar();
-          }
-        };
-        calendarEl.appendChild(el);
+      const days = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      for(let d=1;d<=days;d++){
+        const day    = new Date(now.getFullYear(),now.getMonth(),d);
+        const ds     = day.toISOString().slice(0,10);
+        const div    = document.createElement('div');
+        div.className='day';
+        div.innerHTML=`<span class="date">${d}</span>`;
+        if(day<new Date().setHours(0,0,0,0)) {
+          div.classList.add('past');
+          if(records[ds]) div.classList.add('done');
+          else div.classList.add('missed');
+        }
+        div.onclick=d=>openTasks(ds);
+        div.ondblclick=d=>{ if(day<new Date().setHours(0,0,0,0)){
+          records[ds]=!records[ds];
+          localStorage.setItem('records',JSON.stringify(records));
+          renderCalendar();
+        }};
+        calendarEl.appendChild(div);
       }
     }
     renderCalendar();
 
-    function openTasks(dateStr) {
-      selectedDate                          = dateStr;
-      calendarEl.style.display              = 'none';
-      document.querySelector('.controls').style.display = 'none';
-      taskSection.style.display             = 'block';
-      document.getElementById('taskDate').value = dateStr;
+    function openTasks(ds){
+      selectedDate=ds;
+      calendarEl.style.display='none';
+      document.querySelector('.controls').style.display='none';
+      taskSection.style.display='block';
+      document.getElementById('taskDate').value=ds;
       renderTasks();
     }
-    backBtn.onclick = () => {
-      calendarEl.style.display              = 'grid';
-      document.querySelector('.controls').style.display = 'flex';
-      taskSection.style.display             = 'none';
+    backBtn.onclick=()=>{
+      calendarEl.style.display='grid';
+      document.querySelector('.controls').style.display='flex';
+      taskSection.style.display='none';
     };
-
-    taskForm.onsubmit = e => {
+    taskForm.onsubmit=e=>{
       e.preventDefault();
-      const desc = document.getElementById('taskDesc').value;
-      const date = document.getElementById('taskDate').value;
-      const time = document.getElementById('taskTime').value;
-      tasks[date]     = tasks[date] || [];
-      tasks[date].push({ desc, time });
-      localStorage.setItem('tasks', JSON.stringify(tasks));
+      const desc=document.getElementById('taskDesc').value;
+      const date=document.getElementById('taskDate').value;
+      const time=document.getElementById('taskTime').value;
+      tasks[date]=tasks[date]||[];
+      tasks[date].push({desc,time});
+      localStorage.setItem('tasks',JSON.stringify(tasks));
       renderTasks();
     };
-
-    function renderTasks() {
-      const list      = tasks[selectedDate] || [];
-      const container = document.getElementById('tasksList');
-      container.innerHTML = '';
-      list.forEach((t, i) => {
-        const div = document.createElement('div');
-        div.className = 'task-item';
-        const chk = document.createElement('input');
-        chk.type    = 'checkbox';
-        chk.checked = tasksDone[selectedDate]?.[i] || false;
-        chk.onchange = () => {
-          tasksDone[selectedDate] = tasksDone[selectedDate] || [];
-          tasksDone[selectedDate][i] = chk.checked;
-          localStorage.setItem('tasksDone', JSON.stringify(tasksDone));
-          if (tasksDone[selectedDate].filter(Boolean).length === list.length) {
-            records[selectedDate] = true;
-            localStorage.setItem('records', JSON.stringify(records));
+    function renderTasks(){
+      const list=tasks[selectedDate]||[];
+      const cont=document.getElementById('tasksList');
+      cont.innerHTML='';
+      list.forEach((t,i)=>{
+        const item=document.createElement('div');item.className='task-item';
+        const chk=document.createElement('input');chk.type='checkbox';
+        chk.checked=tasksDone[selectedDate]?.[i]||false;
+        chk.onchange=()=>{
+          tasksDone[selectedDate]=tasksDone[selectedDate]||[];
+          tasksDone[selectedDate][i]=chk.checked;
+          localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
+          if(tasksDone[selectedDate].filter(Boolean).length===list.length){
+            records[selectedDate]=true;
+            localStorage.setItem('records',JSON.stringify(records));
             renderCalendar();
           }
         };
-        const span = document.createElement('span');
-        span.textContent = `${t.desc} (${t.time})`;
-        const btn = document.createElement('button');
-        btn.textContent = '→ Kalender';
-        btn.onclick    = () => addEvent(t);
-        div.append(chk, span, btn);
-        container.appendChild(div);
+        const span=document.createElement('span');span.textContent=`${t.desc} (${t.time})`;
+        const btn=document.createElement('button');btn.textContent='→ Kalender';
+        btn.onclick=()=>addEvent(t);
+        item.append(chk,span,btn);
+        cont.appendChild(item);
       });
     }
-
-    function addEvent(task) {
-      const token = gapi.client.getToken()?.access_token;
-      if (!token) return alert('Bitte verbinden');
-      const event = {
-        summary: task.desc,
-        start:   { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-        end:     { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+    function addEvent(task){
+      const token=gapi.client.getToken()?.access_token;
+      if(!token) return alert('Bitte verbinden');
+      const ev={summary:task.desc,
+        start:{dateTime:`${selectedDate}T${task.time}:00`,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone},
+        end:  {dateTime:`${selectedDate}T${task.time}:00`,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone}
       };
-      gapi.client.calendar.events.insert({ calendarId: 'primary', resource: event })
-        .then(() => alert('Termin erstellt'));
+      gapi.client.calendar.events.insert({calendarId:'primary',resource:ev})
+        .then(()=>alert('Termin erstellt'));
     }
   </script>
+
 </body>
 </html>
