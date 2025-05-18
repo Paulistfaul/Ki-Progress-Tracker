@@ -96,6 +96,11 @@
     }
     .task-item span { flex: 1; margin-left: .5rem; }
   </style>
+
+  <!-- 1) Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- 2) Google API für Calendar -->
+  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
   <div class="container">
@@ -107,14 +112,11 @@
         <div class="card"><div class="value" id="level">--</div><div class="label">Level</div></div>
       </div>
     </header>
-
     <div class="controls">
       <button id="authorize_button">Kalender verbinden</button>
       <button id="signout_button" style="display:none;">Abmelden</button>
     </div>
-
     <div id="calendar"></div>
-
     <div id="taskSection">
       <button id="backBtn">Zurück zur Übersicht</button><br />
       <form id="taskForm">
@@ -138,52 +140,69 @@
       localStorage.setItem('startDate', new Date().toISOString());
 
     // Stats berechnen
-    const startDate = new Date(localStorage.getItem('startDate'));
-    const now = new Date();
-    const diffDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-    const currentMonth = Math.min(6, Math.floor(diffDays / 30) + 1);
-    const levelIndex = Math.min(6, Math.ceil(currentMonth / (6 / 6)));
-    const levels = ['Anfänger','Amateur','Fortgeschrittener','Profi','Second AI Product Owner','AI Product Owner'];
-    document.getElementById('xp').textContent = `${diffDays * 100} XP`;
+    const startDate   = new Date(localStorage.getItem('startDate'));
+    const now         = new Date();
+    const diffDays    = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+    const currentMonth= Math.min(6, Math.floor(diffDays / 30) + 1);
+    const levelIndex  = Math.min(6, Math.ceil(currentMonth / (6 / 6)));
+    const levels      = ['Anfänger','Amateur','Fortgeschrittener','Profi','Second AI Product Owner','AI Product Owner'];
+    document.getElementById('xp').textContent            = `${diffDays * 100} XP`;
     document.getElementById('monthProgress').textContent = `${currentMonth} / 6`;
-    document.getElementById('level').textContent = levels[levelIndex - 1];
+    document.getElementById('level').textContent         = levels[levelIndex - 1];
 
     // Google API Zugangsdaten
-   const CLIENT_ID = '828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
-const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
+    const CLIENT_ID      = '828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
+    const API_KEY        = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
     const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+    const SCOPES         = 'https://www.googleapis.com/auth/calendar.events';
 
     // Buttons
     const authorizeButton = document.getElementById('authorize_button');
-    const signoutButton  = document.getElementById('signout_button');
+    const signoutButton   = document.getElementById('signout_button');
 
-    // Google API initialisieren
+    // GIS Token Client
+    let tokenClient;
     function handleClientLoad() {
-      gapi.load('client:auth2', initClient);
+      gapi.load('client', initGapiClient);
     }
-    function initClient() {
-      gapi.client.init({ apiKey: API_KEY, clientId: CLIENT_ID, discoveryDocs: DISCOVERY_DOCS, scope: SCOPES })
+    function initGapiClient() {
+      gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS })
         .then(() => {
-          const auth = gapi.auth2.getAuthInstance();
-          auth.isSignedIn.listen(updateSigninStatus);
-          updateSigninStatus(auth.isSignedIn.get());
-          authorizeButton.onclick = () => auth.signIn();
-          signoutButton.onclick  = () => auth.signOut();
+          tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: (resp) => {
+              if (resp.error) {
+                console.error(resp);
+                return;
+              }
+              updateSigninStatus(true);
+            }
+          });
         });
     }
-    function updateSigninStatus(isSignedIn) {
-      if (isSignedIn) {
+    function handleAuthClick() {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+    function handleSignoutClick() {
+      const token = gapi.client.getToken()?.access_token;
+      if (token) google.accounts.oauth2.revoke(token);
+      gapi.client.setToken('');
+      updateSigninStatus(false);
+    }
+    function updateSigninStatus(signedIn) {
+      if (signedIn) {
         authorizeButton.style.display = 'none';
-        signoutButton.style.display = 'inline-block';
+        signoutButton.style.display   = 'inline-block';
       } else {
         authorizeButton.style.display = 'inline-block';
-        signoutButton.style.display = 'none';
+        signoutButton.style.display   = 'none';
       }
     }
-    window.onload = handleClientLoad;
+    authorizeButton.onclick = handleAuthClick;
+    signoutButton.onclick  = handleSignoutClick;
 
-    // Kalender & Tasks
+    // Kalender & Tasks (unverändert)
     const calendarEl  = document.getElementById('calendar');
     const taskSection = document.getElementById('taskSection');
     const backBtn     = document.getElementById('backBtn');
@@ -197,15 +216,16 @@ const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
       calendarEl.innerHTML = '';
       const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
       for (let d = 1; d <= daysInMonth; d++) {
-        const day = new Date(now.getFullYear(), now.getMonth(), d);
+        const day     = new Date(now.getFullYear(), now.getMonth(), d);
         const dateStr = day.toISOString().slice(0,10);
-        const el = document.createElement('div'); el.className = 'day';
-        el.innerHTML = `<span class="date">${d}</span>`;
-        const past = day < new Date().setHours(0,0,0,0);
+        const el      = document.createElement('div');
+        el.className  = 'day';
+        el.innerHTML  = `<span class="date">${d}</span>`;
+        const past    = day < new Date().setHours(0,0,0,0);
         if (past) el.classList.add('past');
         if (records[dateStr]) el.classList.add('done');
         else if (past) el.classList.add('missed');
-        el.onclick = () => openTasks(dateStr);
+        el.onclick    = () => openTasks(dateStr);
         el.ondblclick = () => {
           if (past) {
             records[dateStr] = !records[dateStr];
@@ -219,17 +239,17 @@ const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
     renderCalendar();
 
     function openTasks(dateStr) {
-      selectedDate = dateStr;
-      calendarEl.style.display           = 'none';
+      selectedDate                          = dateStr;
+      calendarEl.style.display              = 'none';
       document.querySelector('.controls').style.display = 'none';
-      taskSection.style.display          = 'block';
+      taskSection.style.display             = 'block';
       document.getElementById('taskDate').value = dateStr;
       renderTasks();
     }
     backBtn.onclick = () => {
-      calendarEl.style.display = 'grid';
+      calendarEl.style.display              = 'grid';
       document.querySelector('.controls').style.display = 'flex';
-      taskSection.style.display = 'none';
+      taskSection.style.display             = 'none';
     };
 
     taskForm.onsubmit = e => {
@@ -237,7 +257,7 @@ const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
       const desc = document.getElementById('taskDesc').value;
       const date = document.getElementById('taskDate').value;
       const time = document.getElementById('taskTime').value;
-      tasks[date] = tasks[date] || [];
+      tasks[date]     = tasks[date] || [];
       tasks[date].push({ desc, time });
       localStorage.setItem('tasks', JSON.stringify(tasks));
       renderTasks();
@@ -248,8 +268,11 @@ const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
       const container = document.getElementById('tasksList');
       container.innerHTML = '';
       list.forEach((t, i) => {
-        const div = document.createElement('div'); div.className = 'task-item';
-        const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = tasksDone[selectedDate]?.[i] || false;
+        const div = document.createElement('div');
+        div.className = 'task-item';
+        const chk = document.createElement('input');
+        chk.type    = 'checkbox';
+        chk.checked = tasksDone[selectedDate]?.[i] || false;
         chk.onchange = () => {
           tasksDone[selectedDate] = tasksDone[selectedDate] || [];
           tasksDone[selectedDate][i] = chk.checked;
@@ -260,24 +283,27 @@ const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
             renderCalendar();
           }
         };
-        const span = document.createElement('span'); span.textContent = `${t.desc} (${t.time})`;
-        const btn  = document.createElement('button'); btn.textContent = '→ Kalender'; btn.onclick = () => addEvent(t);
+        const span = document.createElement('span');
+        span.textContent = `${t.desc} (${t.time})`;
+        const btn = document.createElement('button');
+        btn.textContent = '→ Kalender';
+        btn.onclick    = () => addEvent(t);
         div.append(chk, span, btn);
         container.appendChild(div);
       });
     }
 
     function addEvent(task) {
-      if (!gapi.auth2.getAuthInstance().isSignedIn.get()) return alert('Bitte verbinden');
+      const token = gapi.client.getToken()?.access_token;
+      if (!token) return alert('Bitte verbinden');
       const event = {
         summary: task.desc,
-        start: { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-        end:   { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+        start:   { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        end:     { dateTime: `${selectedDate}T${task.time}:00`, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
       };
       gapi.client.calendar.events.insert({ calendarId: 'primary', resource: event })
         .then(() => alert('Termin erstellt'));
     }
   </script>
-  <script async defer src="https://apis.google.com/js/api.js" onload="handleClientLoad()"></script>
 </body>
 </html>
