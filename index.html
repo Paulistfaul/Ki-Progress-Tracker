@@ -14,20 +14,22 @@
     .past.missed { background: #fdd; }
     .past.done { background: #cfc; }
     .past.bonus { background: gold; }
+    #tasksSection { display: none; }
     #tasksInput { width: 100%; height: 4rem; margin-bottom: 0.5rem; }
     #tasksList { margin-bottom: 1rem; }
     .task-item { display: flex; align-items: center; margin-bottom: 0.3rem; }
     .task-item input { margin-right: 0.5rem; }
-    button { padding: 0.4rem 0.8rem; margin-right: 0.5rem; }
+    button { padding: 0.4rem 0.8rem; margin: 0.3rem; }
   </style>
 </head>
 <body>
   <h1>KI Lern-Tracker</h1>
   <script>
+    // Passwortabfrage
     if (!localStorage.getItem("pwVerified")) {
       const pw = prompt("Passwort eingeben:");
       if (pw !== "2610") { alert("Falsches Passwort"); throw "Abbruch"; }
-      localStorage.setItem("pwVerified", "true");
+      localStorage.setItem("pwVerified","true");
     }
     if (!localStorage.getItem("startDate")) {
       localStorage.setItem("startDate", new Date().toISOString());
@@ -39,23 +41,28 @@
     const diffDays = Math.floor((now - startDate) / (1000*60*60*24));
     const currentMonth = Math.min(10, Math.floor(diffDays/30) + 1);
     const levelIndex = Math.min(6, Math.ceil(currentMonth/(10/6)));
-    const levels = [
-      "Anfänger","Amateur","Fortgeschrittener","Profi",
-      "Second AI Product Owner","AI Product Owner"
-    ];
-    document.write(`<div id="xp">XP: ${diffDays*100} / ${1000}</div>`);
+    const levels = ["Anfänger","Amateur","Fortgeschrittener","Profi","Second AI Product Owner","AI Product Owner"];
+    document.write(`<div id="xp">XP: ${diffDays*100} / 1000</div>`);
     document.write(`<div id="monthProgress">Monat: ${currentMonth} / 10</div>`);
     document.write(`<div id="level">Level: ${levels[levelIndex-1]}</div>`);
   </script>
 
+  <button id="showTasksBtn">Aufgaben anzeigen</button>
+
   <div id="calendar"></div>
 
-  <textarea id="tasksInput" placeholder="Quests hier reinkopieren im Format: Aufgabe Beschreibung | DD.MM.YYYY"></textarea><br>
-  <button id="importTasksBtn">Quests importieren</button>
-  <div id="tasksList"></div>
+  <div id="tasksSection">
+    <button id="backBtn">Zurück zur Übersicht</button><br>
+    <textarea id="tasksInput" placeholder="Format: Beschreibung | DD.MM"></textarea><br>
+    <button id="importTasksBtn">Quests importieren</button>
+    <div id="tasksList"></div>
+  </div>
 
   <script>
     const calendarEl = document.getElementById("calendar");
+    const showTasksBtn = document.getElementById("showTasksBtn");
+    const tasksSection = document.getElementById("tasksSection");
+    const backBtn = document.getElementById("backBtn");
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth();
@@ -68,61 +75,84 @@
     function renderCalendar() {
       calendarEl.innerHTML = '';
       for (let d=1; d<=daysInMonth; d++) {
-        const day = new Date(year, month, d);
-        const dateStr = day.toISOString().slice(0,10);
-        const past = day < new Date().setHours(0,0,0,0);
-        const el = document.createElement('div'); el.classList.add('day'); el.textContent=d;
-        if(past) el.classList.add('past');
+        const dayDate = new Date(year,month,d);
+        const dateStr = dayDate.toISOString().slice(0,10);
+        const isPast = dayDate < new Date().setHours(0,0,0,0);
+        const el = document.createElement('div');
+        el.classList.add('day'); el.textContent=d;
+        if(isPast) el.classList.add('past');
         if(records[dateStr]==='bonus') el.classList.add('bonus');
         else if(records[dateStr]) el.classList.add('done');
-        else if(past) el.classList.add('missed');
+        else if(isPast) el.classList.add('missed');
         el.addEventListener('click', ()=> loadTasks(dateStr));
+        el.addEventListener('dblclick', ()=>{
+          if(isPast) {
+            if(records[dateStr]) records[dateStr]=false;
+            else records[dateStr]=true;
+            localStorage.setItem('records',JSON.stringify(records));
+            renderCalendar();
+          }
+        });
         calendarEl.appendChild(el);
       }
     }
     renderCalendar();
 
     function loadTasks(dateStr) {
+      calendarEl.style.display='none';
+      showTasksBtn.style.display='none';
+      tasksSection.style.display='block';
       const list = tasks[dateStr]||[];
       const done = tasksDone[dateStr]||[];
       const container = document.getElementById('tasksList'); container.innerHTML='';
       list.forEach((desc,i)=>{
         const div = document.createElement('div'); div.classList.add('task-item');
-        const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!done[i];
+        const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=done[i];
         chk.addEventListener('change', ()=>{
           done[i]=chk.checked;
-          tasksDone[dateStr]=done; localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
-          if(list.length>0 && done.filter(Boolean).length===list.length) { records[dateStr]=true; localStorage.setItem('records',JSON.stringify(records)); renderCalendar(); }
+          tasksDone[dateStr]=done;
+          localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
+          if(done.filter(Boolean).length===list.length) { records[dateStr]=true; localStorage.setItem('records',JSON.stringify(records)); renderCalendar(); }
         });
-        const span = document.createElement('span'); span.textContent=desc;
+        const span=document.createElement('span'); span.textContent=desc;
         div.appendChild(chk); div.appendChild(span);
         container.appendChild(div);
       });
     }
 
-    document.getElementById('importTasksBtn').addEventListener('click', ()=>{
+    importTasksBtn.addEventListener('click', ()=>{
       const lines = document.getElementById('tasksInput').value.split('\n').map(l=>l.trim()).filter(l=>l);
       lines.forEach(line=>{
         const parts=line.split('|');
         if(parts.length<2) return;
-        const desc=parts[0].trim(); const d=parts[1].trim().split('.');
-        const dateStr=`${d[2]}-${d[1].padStart(2,'0')}-${d[0].padStart(2,'0')}`;
-        tasks[dateStr]=tasks[dateStr]||[]; tasks[dateStr].push(desc);
+        const desc=parts[0].trim();
+        const [d,m] = parts[1].trim().split('.');
+        const mm=m.padStart(2,'0'), dd=d.padStart(2,'0');
+        const dateStr=`${year}-${mm}-${dd}`;
+        tasks[dateStr]=tasks[dateStr]||[];
+        tasks[dateStr].push(desc);
       });
       localStorage.setItem('tasks',JSON.stringify(tasks));
-      const todayStr = today.toISOString().slice(0,10);
-      loadTasks(todayStr);
+      loadTasks(today.toISOString().slice(0,10));
       renderCalendar();
     });
 
-    // Auto mark past days missed
+    showTasksBtn.addEventListener('click', ()=>{
+      calendarEl.style.display='block';
+      showTasksBtn.style.display='none';
+      tasksSection.style.display='none';
+    });
+    backBtn.addEventListener('click', ()=>{
+      calendarEl.style.display='block';
+      showTasksBtn.style.display='block';
+      tasksSection.style.display='none';
+    });
+
     window.addEventListener('load', ()=>{
-      const todayStr = today.toISOString().slice(0,10);
-      Object.keys(tasks).forEach(d=>{});
       renderCalendar();
-      loadTasks(todayStr);
     });
   </script>
 </body>
 </html>
+
 
