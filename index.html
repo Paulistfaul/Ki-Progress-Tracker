@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>KI Progress Tracker</title>
-  <link rel="manifest" href="manifest.json">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     :root {
       --primary: #4CAF50; --secondary: #fff; --background: #f5f7fa;
@@ -14,27 +14,33 @@
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0; font-family: 'Inter', sans-serif;
-      background: var(--background); color: var(--text);
+      margin:0; font-family:'Inter',sans-serif;
+      background:var(--background); color:var(--text);
     }
-    .container { max-width:480px; margin:0 auto; padding:1rem; }
+    .container { max-width: 480px; margin:0 auto; padding:1rem; }
     header { text-align:center; margin-bottom:1rem; }
-    header h1 { font-size:1.6rem; margin-bottom:.5rem; }
-    .stats { display:flex; gap:.5rem; margin-bottom:1rem; }
+    header h1 { margin-bottom:.5rem; }
+    .stats {
+      display: flex; flex-wrap: wrap; gap:.5rem;
+      justify-content: center; margin-bottom:1rem;
+    }
     .card {
-      flex:1; background:var(--card-bg); border-radius:var(--radius);
-      box-shadow:var(--shadow); padding:.75rem; text-align:center;
-      position:relative; cursor:pointer;
+      flex: 1 1 calc(50% - .5rem);
+      background:var(--card-bg); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:.75rem;
+      text-align:center; position:relative; cursor:pointer;
     }
     .card .value { font-size:1.2rem; font-weight:600; }
     .card .label { color:var(--muted); font-size:.85rem; }
     .controls { display:flex; gap:.5rem; justify-content:center; margin-bottom:1rem; }
     button {
-      background:var(--primary); color:var(--secondary); border:none;
-      border-radius:var(--radius); padding:.6rem 1rem; font-weight:600;
-      box-shadow:var(--shadow); cursor:pointer; transition:background .3s;
+      background:var(--primary); color:var(--secondary);
+      border:none; border-radius:var(--radius);
+      padding:.6rem 1rem; font-weight:600;
+      box-shadow:var(--shadow); cursor:pointer;
+      transition:background .3s;
     }
-    button:disabled { opacity:.5; cursor:default; }
+    button:disabled { opacity:.6; cursor:default; }
     button:hover:not(:disabled) { background:#43a047; }
     #calendar {
       display:grid; grid-template-columns:repeat(7,1fr);
@@ -42,8 +48,8 @@
     }
     .day {
       background:var(--card-bg); border-radius:var(--radius);
-      box-shadow:var(--shadow); padding:.5rem; text-align:center;
-      cursor:pointer;
+      box-shadow:var(--shadow); padding:.5rem;
+      text-align:center; cursor:pointer;
     }
     .day.past.missed { background:#fdecea; }
     .day.past.done   { background:#e8f5e9; }
@@ -52,8 +58,13 @@
       padding:1rem; border-radius:var(--radius);
       box-shadow:var(--shadow); margin-top:1rem;
     }
-    #taskForm input, #taskForm button {
-      width:100%; margin-bottom:.5rem; font-family:'Inter',sans-serif;
+    #tasksInput {
+      width:100%; height:120px; margin-bottom:.5rem;
+      padding:.5rem; font-size:1rem; border-radius:var(--radius);
+      border:1px solid var(--muted); font-family:'Inter',sans-serif;
+    }
+    .stat-daily {
+      margin-bottom:.75rem; font-weight:600;
     }
     .task-item {
       display:flex; align-items:center; justify-content:space-between;
@@ -61,22 +72,24 @@
       border-radius:var(--radius); margin-bottom:.4rem;
     }
     .task-item span { flex:1; margin-left:.5rem; }
-    /* Level-Detail-Overlay */
+    .task-item .xp-btn {
+      background:transparent; color:var(--primary);
+      border:none; font-size:.9rem; cursor:pointer;
+    }
+    /* Level-Overlay */
     #levelDetails {
-      display:none; background:rgba(0,0,0,0.5);
-      position:fixed; top:0; left:0; right:0; bottom:0;
-      align-items:center; justify-content:center;
+      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.5); align-items:center; justify-content:center;
     }
     #levelDetails .box {
       background:var(--card-bg); padding:1rem; border-radius:var(--radius);
-      max-width:320px; width:90%;
+      width:90%; max-width:360px;
     }
-    #levelDetails ul { list-style:none; padding:0; }
+    #levelDetails progress { width:100%; height:1rem; margin-bottom:.5rem; }
     #levelDetails li { margin:4px 0; }
-    #levelDetails progress { width:100%; height:1rem; }
   </style>
 
-  <!-- GIS & Calendar API -->
+  <!-- Google Identity Services & Calendar API -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
@@ -85,20 +98,21 @@
     <header>
       <h1>KI Progress Tracker</h1>
       <div class="stats">
-        <!-- Tägliche XP -->
         <div class="card" id="xpCard">
-          <div class="value" id="xpValue">0/0 XP</div>
-          <div class="label">Heute</div>
+          <div class="value" id="xpValue">0 XP</div>
+          <div class="label">Total XP</div>
         </div>
-        <!-- Monats-Fortschritt bleibt /6 -->
         <div class="card">
           <div class="value" id="monthProgress">-- / 6</div>
           <div class="label">Monat</div>
         </div>
-        <!-- Level -->
         <div class="card" id="levelCard">
           <div class="value" id="levelDisplay">Anfänger</div>
           <div class="label">Level</div>
+        </div>
+        <div class="card">
+          <div class="value" id="xpToNext">1000 XP</div>
+          <div class="label">bis nächstes Level</div>
         </div>
       </div>
     </header>
@@ -111,17 +125,18 @@
     <div id="calendar"></div>
 
     <div id="taskSection">
-      <button id="backBtn">Zurück zur Übersicht</button><br>
-      <textarea id="tasksInput" placeholder="Quests hier (je 1 Zeile, z.B. Beschreibung (50 XP))"></textarea><br>
+      <button id="backBtn">Zurück zur Übersicht</button>
+      <div class="stat-daily" id="dailyXP">Heute: 0/0 XP</div>
+      <textarea id="tasksInput" placeholder="Quests hier (je 1 Zeile, z.B. Beschreibung (50 XP))"></textarea>
       <button id="importTasksBtn">Quests importieren</button>
       <div id="tasksList"></div>
     </div>
   </div>
 
-  <!-- Overlay für Level-Details -->
+  <!-- Level-Details Overlay -->
   <div id="levelDetails">
     <div class="box">
-      <h2>Level-Fortschritt</h2>
+      <h2>Dein Fortschritt</h2>
       <progress id="levelProgress" max="5000" value="0"></progress>
       <ul id="levelList"></ul>
       <button onclick="toggleLevelDetails()">Schließen</button>
@@ -129,105 +144,98 @@
   </div>
 
   <script>
-    // ===== Grundsetup: Passwort & Startdatum =====
+    // Passwort & Startdatum
     if (!localStorage.getItem('pwVerified')) {
       const pw = prompt('Passwort eingeben:');
-      if (pw !== '2610') { alert('Falsches Passwort'); throw ''; }
+      if (pw!=='2610') { alert('Falsches Passwort'); throw ''; }
       localStorage.setItem('pwVerified','true');
     }
     if (!localStorage.getItem('startDate'))
       localStorage.setItem('startDate', new Date().toISOString());
     const startDate = new Date(localStorage.getItem('startDate'));
-    const now       = new Date();
+    const now = new Date();
 
-    // ===== Datenstrukturen aus LocalStorage =====
+    // Daten aus LocalStorage
     const records   = JSON.parse(localStorage.getItem('records')   || '{}');
     const tasks     = JSON.parse(localStorage.getItem('tasks')     || '{}');
     const tasksDone = JSON.parse(localStorage.getItem('tasksDone') || '{}');
 
-    // ===== DOM-Elemente =====
-    const xpValue         = document.getElementById('xpValue');
-    const xpCard          = document.getElementById('xpCard');
-    const monthProgress   = document.getElementById('monthProgress');
-    const levelCard       = document.getElementById('levelCard');
-    const levelDisplay    = document.getElementById('levelDisplay');
-    const levelDetails    = document.getElementById('levelDetails');
-    const levelProgressEl = document.getElementById('levelProgress');
-    const levelList       = document.getElementById('levelList');
+    // DOM-Elemente
+    const xpValue       = document.getElementById('xpValue');
+    const xpToNext      = document.getElementById('xpToNext');
+    const monthProg     = document.getElementById('monthProgress');
+    const levelCard     = document.getElementById('levelCard');
+    const levelDisplay  = document.getElementById('levelDisplay');
+    const dailyXPEl     = document.getElementById('dailyXP');
+    const levelDetails  = document.getElementById('levelDetails');
+    const levelProgress = document.getElementById('levelProgress');
+    const levelList     = document.getElementById('levelList');
 
-    // ===== Level-Definition =====
-    const levelNames = [
-      'Anfänger',
-      'Amateur',
-      'Fortgeschrittener',
-      'Profi',
-      'Second AI Product Owner',
-      'AI Product Owner'
-    ];
-    const xpPerLevel = 1000;      // je Level-Übergang
-    const maxLevelXP = xpPerLevel * (levelNames.length - 1); //5000
+    // Level und XP-Konstanten
+    const levelNames  = ['Anfänger','Amateur','Fortgeschrittener','Profi','Second AI Product Owner','AI Product Owner'];
+    const xpPerLevel  = 1000;
+    const maxLevelXP  = xpPerLevel * (levelNames.length - 1);
 
-    // ===== Header-Funktion: XP & Level anzeigen =====
+    // Header updaten (XP, Monat, Level)
     function updateHeader() {
-      // 1) Tägliche XP
-      const todayStr = now.toISOString().slice(0,10);
-      const todaysTasks = tasks[todayStr] || [];
-      const possibleXP = todaysTasks.reduce((sum,t)=>sum+t.xp,0);
-      const earnedXP   = todaysTasks.reduce((sum,t,i)=> sum + ((tasksDone[todayStr]?.[i])? t.xp : 0),0);
-      xpValue.textContent = `${earnedXP}/${possibleXP} XP`;
-
-      // 2) Monatsfortschritt (unverändert)
-      const diffDays = Math.floor((now - startDate)/(1000*60*60*24));
-      const currentMonth = Math.min(6, Math.floor(diffDays/30)+1);
-      monthProgress.textContent = `${currentMonth} / 6`;
-
-      // 3) Cumulatives XP & Level
+      // Total XP
       let totalXP = 0;
-      Object.keys(tasks).forEach(date=>{
-        tasks[date].forEach((t,i)=>{
+      Object.keys(tasks).forEach(date => {
+        tasks[date].forEach((t,i) => {
           if (tasksDone[date]?.[i]) totalXP += t.xp;
         });
       });
-      const levelIndex = Math.min(levelNames.length-1, Math.floor(totalXP/xpPerLevel));
-      levelDisplay.textContent = levelNames[levelIndex];
+      xpValue.textContent = `${totalXP} XP`;
+      // XP bis nächstes Level
+      const currentLevel = Math.min(levelNames.length-1, Math.floor(totalXP/xpPerLevel));
+      const nextThresh   = (currentLevel+1)*xpPerLevel;
+      xpToNext.textContent = `${Math.max(0, nextThresh - totalXP)} XP`;
 
-      // 4) Fülle Level-Details (Progress + Liste)
-      levelProgressEl.max   = maxLevelXP;
-      levelProgressEl.value = totalXP;
+      // Level-Text
+      levelDisplay.textContent = levelNames[currentLevel];
+
+      // Monatsfortschritt
+      const diffDays = Math.floor((now - startDate)/(1000*60*60*24));
+      const month    = Math.min(6, Math.floor(diffDays/30)+1);
+      monthProg.textContent = `${month} / 6`;
+
+      // Level-Details
+      levelProgress.max = maxLevelXP;
+      levelProgress.value = totalXP;
       levelList.innerHTML = levelNames.map((name,i)=>{
-        const threshold = i*xpPerLevel;
-        return `<li>${name}: ab ${threshold} XP</li>`;
+        return `<li>${name}: ab ${i*xpPerLevel} XP</li>`;
       }).join('');
     }
-
-    // Klick auf Level card zeigt Details
+    levelCard.onclick = ()=> {
+      levelDetails.style.display = 'flex';
+    };
     function toggleLevelDetails(){
-      levelDetails.style.display = levelDetails.style.display==='flex' ? 'none' : 'flex';
+      levelDetails.style.display = 'none';
     }
-    levelCard.onclick = toggleLevelDetails;
 
-    // ===== Kalender & Tasks (unverändert) =====
+    // Kalender & Tasks
     const calendarEl  = document.getElementById('calendar');
-    const taskSection = document.getElementById('taskSection');
+    const taskSec     = document.getElementById('taskSection');
     const backBtn     = document.getElementById('backBtn');
     const importBtn   = document.getElementById('importTasksBtn');
     const tasksInput  = document.getElementById('tasksInput');
+    let selectedDate  = null;
 
     function renderCalendar() {
-      calendarEl.innerHTML='';
+      calendarEl.innerHTML = '';
       const daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
       for(let d=1;d<=daysInMonth;d++){
-        const day     = new Date(now.getFullYear(),now.getMonth(),d);
-        const ds      = day.toISOString().slice(0,10);
-        const div     = document.createElement('div');
+        const day = new Date(now.getFullYear(),now.getMonth(),d);
+        const ds  = day.toISOString().slice(0,10);
+        const div = document.createElement('div');
         div.className = 'day';
         div.textContent = d;
         if(day < new Date().setHours(0,0,0,0)){
           div.classList.add('past');
-          div.classList.add(records[ds] ? 'done' : 'missed');
+          div.classList.add(records[ds]?'done':'missed');
         }
-        div.onclick  = ()=> openTasks(ds);
-        div.ondblclick = ()=>{
+        div.onclick = ()=> openTasks(ds);
+        div.ondblclick = ()=> {
           if(day < new Date().setHours(0,0,0,0)){
             records[ds] = !records[ds];
             localStorage.setItem('records',JSON.stringify(records));
@@ -239,55 +247,56 @@
       }
     }
 
-    function openTasks(dateStr){
-      selectedDate = dateStr;
+    function openTasks(ds){
+      selectedDate = ds;
       calendarEl.style.display = 'none';
       document.querySelector('.controls').style.display = 'none';
-      taskSection.style.display = 'block';
+      taskSec.style.display = 'block';
       renderTasks();
     }
     backBtn.onclick = ()=>{
       calendarEl.style.display = 'grid';
       document.querySelector('.controls').style.display = 'flex';
-      taskSection.style.display = 'none';
+      taskSec.style.display = 'none';
     };
 
-    function importTasks(){
+    // Quests importieren
+    importBtn.onclick = ()=>{
       const lines = tasksInput.value.split('\n').map(l=>l.trim()).filter(l=>l);
       if(!lines.length) return;
-      const todayStr = now.toISOString().slice(0,10);
-      tasks[todayStr] = lines.map(l=>{
-        // parse xp in "(xx XP)"
+      tasks[selectedDate] = lines.map(l=>{
         const m = l.match(/\((\d+)\s*XP\)$/i);
-        const xp = m? parseInt(m[1],10) : 0;
-        const desc = m? l.slice(0,m.index).trim() : l;
+        const xp = m? parseInt(m[1],10):0;
+        const desc = m? l.slice(0,m.index).trim():l;
         return {desc,time:'',xp};
       });
       localStorage.setItem('tasks',JSON.stringify(tasks));
-      records[todayStr] = false;
+      records[selectedDate] = false;
       localStorage.setItem('records',JSON.stringify(records));
       renderTasks();
       renderCalendar();
       updateHeader();
-    }
-    importBtn.onclick = importTasks;
+    };
 
     function renderTasks(){
       const list = tasks[selectedDate]||[];
+      // tägliche XP
+      const possible = list.reduce((s,t)=>s+t.xp,0);
+      const earned   = list.reduce((s,t,i)=>s+(tasksDone[selectedDate]?.[i]?t.xp:0),0);
+      dailyXPEl.textContent = `Heute: ${earned}/${possible} XP`;
+
       const container = document.getElementById('tasksList');
-      container.innerHTML='';
+      container.innerHTML = '';
       list.forEach((t,i)=>{
-        const div = document.createElement('div');
-        div.className = 'task-item';
-        const chk = document.createElement('input');
-        chk.type = 'checkbox';
-        chk.checked = tasksDone[selectedDate]?.[i] || false;
+        const div = document.createElement('div'); div.className='task-item';
+        const chk = document.createElement('input'); chk.type='checkbox';
+        chk.checked = tasksDone[selectedDate]?.[i]||false;
         chk.onchange = ()=>{
           tasksDone[selectedDate] = tasksDone[selectedDate]||[];
           tasksDone[selectedDate][i] = chk.checked;
           localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
-          if(tasksDone[selectedDate].filter(Boolean).length === list.length){
-            records[selectedDate]=true;
+          if(tasksDone[selectedDate].filter(Boolean).length===list.length){
+            records[selectedDate] = true;
             localStorage.setItem('records',JSON.stringify(records));
             renderCalendar();
           }
@@ -295,17 +304,29 @@
         };
         const span = document.createElement('span');
         span.textContent = `${t.desc} (${t.xp} XP)`;
-        div.append(chk,span);
+        // XP bearbeiten
+        const xpBtn = document.createElement('button');
+        xpBtn.className = 'xp-btn';
+        xpBtn.textContent = 'Ändere XP';
+        xpBtn.onclick = ()=>{
+          const neu = parseInt(prompt('Neue XP für diese Aufgabe:',t.xp),10);
+          if(!isNaN(neu)){
+            t.xp = neu;
+            localStorage.setItem('tasks',JSON.stringify(tasks));
+            renderTasks();
+            updateHeader();
+          }
+        };
+        div.append(chk,span,xpBtn);
         container.appendChild(div);
       });
     }
 
-    // ===== Google OAuth & Calendar =====
+    // Google OAuth & Calendar (unverändert) …
     const CLIENT_ID = '828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
     const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
     const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
     const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-
     const authorizeButton = document.getElementById('authorize_button');
     const signoutButton   = document.getElementById('signout_button');
     let tokenClient;
@@ -318,16 +339,13 @@
         .then(()=>{
           tokenClient = google.accounts.oauth2.initTokenClient({
             client_id:CLIENT_ID, scope:SCOPES,
-            callback:(resp)=> {
-              if(resp.error) console.error(resp);
-              else updateSigninStatus(true);
-            }
+            callback:resp=>{ if(resp.error) console.error(resp); else updateSigninStatus(true); }
           });
           authorizeButton.disabled = false;
           authorizeButton.onclick = ()=>tokenClient.requestAccessToken({prompt:'consent'});
           signoutButton.onclick   = ()=>{
-            const token = gapi.client.getToken()?.access_token;
-            if(token) google.accounts.oauth2.revoke(token);
+            const tok = gapi.client.getToken()?.access_token;
+            if(tok) google.accounts.oauth2.revoke(tok);
             gapi.client.setToken('');
             updateSigninStatus(false);
           };
@@ -335,8 +353,8 @@
       updateHeader();
     }
     function updateSigninStatus(signedIn){
-      authorizeButton.style.display = signedIn ? 'none':'inline-block';
-      signoutButton.style.display   = signedIn ? 'inline-block':'none';
+      authorizeButton.style.display = signedIn?'none':'inline-block';
+      signoutButton.style.display   = signedIn?'inline-block':'none';
     }
     window.onload = handleClientLoad;
 
