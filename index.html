@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     :root {
-      --primary: #4CAF50; --secondary: #fff; --background: #f5f7fa;
+      --primary: #4caf50; --secondary: #fff; --background: #f5f7fa;
       --card-bg: #fff; --text: #333; --muted: #777;
       --radius: 12px; --shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
@@ -16,200 +16,102 @@
       margin:0; font-family:'Inter',sans-serif;
       background:var(--background); color:var(--text);
     }
-    .container {
-      max-width:600px;
-      margin:0 auto;
-      padding:1rem;
-    }
-    header {
-      text-align:center;
-      margin-bottom:1rem;
-    }
-    header h1 {
-      font-size:2rem;
-      margin-bottom:.5rem;
-    }
-    .stats {
-      display:flex;
-      gap:1rem;
-      justify-content:space-between;
-      margin-bottom:1rem;
-    }
+    .container { max-width:600px; margin:0 auto; padding:1rem; }
+    header { text-align:center; margin-bottom:1rem; }
+    header h1 { font-size:2rem; margin-bottom:.5rem; }
+    .stats { display:flex; gap:1rem; justify-content:space-between; margin-bottom:1rem; }
     .card {
-      flex:1;
-      background:var(--card-bg);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:.75rem;
-      text-align:center;
+      flex:1; background:var(--card-bg); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:.75rem; text-align:center;
     }
-    .card .value {
-      font-size:1.4rem;
-      font-weight:600;
-    }
-    .card .label {
-      color:var(--muted);
-      font-size:.9rem;
-    }
+    .card .value { font-size:1.4rem; font-weight:600; }
+    .card .label { color:var(--muted); font-size:.9rem; }
 
     .progress-bar {
-      position:relative;
-      height:30px;
-      background:#eee;
-      border-radius:var(--radius);
-      overflow:hidden;
-      margin-bottom:5px;
+      position:relative; height:30px; background:#eee;
+      border-radius:var(--radius); overflow:hidden; margin-bottom:5px;
     }
     .progress-bar-fill {
-      height:100%;
-      background:var(--primary);
-      width:0%;
-      transition:width .3s ease;
+      height:100%; background:var(--primary);
+      width:0%; transition:width .3s ease;
     }
     .progress-pointer {
-      position:absolute;
-      top:-5px;
-      width:2px;
-      height:40px;
-      background:red;
+      position:absolute; top:-5px; width:2px; height:40px; background:red;
       transition:left .3s ease;
     }
     .level-labels {
-      display:flex;
-      justify-content:space-between;
-      font-size:.75rem;
-      margin-bottom:1rem;
+      display:flex; justify-content:space-between;
+      font-size:.75rem; margin-bottom:1rem;
     }
 
-    .controls {
-      display:flex;
-      gap:.5rem;
-      justify-content:center;
-      margin-bottom:1rem;
-    }
+    .controls { display:flex; gap:.5rem; justify-content:center; margin-bottom:1rem; }
     button {
-      background:var(--primary);
-      color:var(--secondary);
-      border:none;
-      border-radius:var(--radius);
-      padding:.6rem 1rem;
-      font-weight:600;
-      box-shadow:var(--shadow);
-      cursor:pointer;
-      transition:background .3s;
+      background:var(--primary); color:var(--secondary);
+      border:none; border-radius:var(--radius);
+      padding:.6rem 1rem; font-weight:600; box-shadow:var(--shadow);
+      cursor:pointer; transition:background .3s;
     }
-    button:disabled {
-      opacity:.6;
-      cursor:default;
-    }
-    button:hover:not(:disabled) {
-      background:#43a047;
-    }
+    button:disabled { opacity:.6; cursor:default; }
+    button:hover:not(:disabled) { background:#43a047; }
 
     #calendar {
-      display:grid;
-      grid-template-columns:repeat(7,1fr);
-      gap:4px;
-      margin-bottom:1rem;
+      display:grid; grid-template-columns:repeat(7,1fr);
+      gap:4px; margin-bottom:1rem;
     }
     .day {
-      background:var(--card-bg);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:.5rem;
-      text-align:center;
+      background:var(--card-bg); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:.5rem; text-align:center;
       cursor:pointer;
     }
-    .day.past.done {
-      background:#e8f5e9;
-    }
-    .day.past.missed {
-      background:#fdecea;
-    }
+    .day.past.done   { background:#e8f5e9; }
+    .day.past.missed { background:#fdecea; }
 
     #taskSection {
-      display:none;
-      background:var(--card-bg);
-      padding:1rem;
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      margin-bottom:1rem;
+      display:none; background:var(--card-bg);
+      padding:1rem; border-radius:var(--radius);
+      box-shadow:var(--shadow); margin-bottom:1rem;
     }
-    #dailyXP {
-      font-weight:600;
-      margin-bottom:.5rem;
-    }
+    #dailyXP { font-weight:600; margin-bottom:.5rem; }
     #tasksInput {
-      width:100%;
-      height:100px;
-      margin-bottom:.5rem;
-      padding:.5rem;
-      font-size:1rem;
-      border:1px solid var(--muted);
-      border-radius:var(--radius);
-      font-family:'Inter',sans-serif;
+      width:100%; height:100px; margin-bottom:.5rem;
+      padding:.5rem; font-size:1rem; border:1px solid var(--muted);
+      border-radius:var(--radius); font-family:'Inter',sans-serif;
     }
     .task-item {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      background:var(--background);
-      padding:.5rem;
-      border-radius:var(--radius);
-      margin-bottom:.4rem;
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--background); padding:.5rem;
+      border-radius:var(--radius); margin-bottom:.4rem;
       position:relative;
     }
-    .task-item span {
-      flex:1;
-      margin-left:.5rem;
-    }
+    .task-item span { flex:1; margin-left:.5rem; }
     .task-item .xp-btn {
-      background:transparent;
-      border:none;
-      color:var(--primary);
-      cursor:pointer;
-      font-size:.85rem;
+      background:transparent; border:none; color:var(--primary);
+      cursor:pointer; font-size:.85rem;
     }
-    .task-item:hover {
-      background:#f0f0f0;
-    }
+    .task-item:hover { background:#f0f0f0; }
 
     /* Level-Details Overlay */
     #levelDetails {
-      display:none;
-      position:fixed;
-      top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.5);
-      align-items:center;
-      justify-content:center;
+      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.5); align-items:center; justify-content:center;
     }
     #levelDetails .box {
-      background:var(--card-bg);
-      padding:1rem;
-      border-radius:var(--radius);
-      width:90%;
-      max-width:360px;
+      background:var(--card-bg); padding:1rem; border-radius:var(--radius);
+      width:90%; max-width:360px;
     }
     #levelDetails progress {
-      width:100%;
-      height:1rem;
-      margin-bottom:.5rem;
+      width:100%; height:1rem; margin-bottom:.5rem;
     }
-    #levelDetails ul {
-      list-style:none;
-      padding:0;
-      font-size:.85rem;
-    }
-    #levelDetails li {
-      margin:4px 0;
-    }
+    #levelDetails ul { list-style:none; padding:0; font-size:.85rem; }
+    #levelDetails li { margin:4px 0; }
   </style>
 
-  <!-- Google Identity Services & Calendar API -->
+  <!-- Google Identity & Calendar API -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
+
   <div class="container">
     <header>
       <h1>KI Progress Tracker</h1>
@@ -233,12 +135,8 @@
         <div class="progress-pointer" id="progressPointer"></div>
       </div>
       <div class="level-labels">
-        <span>0 XP</span>
-        <span>5k</span>
-        <span>10k</span>
-        <span>17.5k</span>
-        <span>24k</span>
-        <span>30k</span>
+        <span>0 XP</span><span>5k</span><span>10k</span>
+        <span>17.5k</span><span>24k</span><span>30k</span>
       </div>
     </header>
 
@@ -280,12 +178,12 @@
     const startDate = new Date(localStorage.getItem('startDate'));
     const now = new Date();
 
-    // Storage laden
+    // LocalStorage laden
     const records   = JSON.parse(localStorage.getItem('records')   || '{}');
     const tasks     = JSON.parse(localStorage.getItem('tasks')     || '{}');
     const tasksDone = JSON.parse(localStorage.getItem('tasksDone') || '{}');
 
-    // DOM-Elemente
+    // DOM-Handles
     const xpValue       = document.getElementById('xpValue');
     const monthProgEl   = document.getElementById('monthProgress');
     const levelCard     = document.getElementById('levelCard');
@@ -302,17 +200,16 @@
     const levelProgress = document.getElementById('levelProgress');
     const levelList     = document.getElementById('levelList');
 
-    // Levelgrenzen
+    // Levelgrenzen neu
     const levelThresholds = [
-      { title: 'Anfänger', xp: 0 },
-      { title: 'Amateur', xp: 5000 },
-      { title: 'Fortgeschrittener', xp: 10000 },
-      { title: 'Profi', xp: 17500 },
-      { title: 'Second AI Product Owner', xp: 24000 },
-      { title: 'AI Product Owner', xp: 30000 }
+      { title:'Anfänger', xp:0 },
+      { title:'Amateur', xp:5000 },
+      { title:'Fortgeschrittener', xp:10000 },
+      { title:'Profi', xp:17500 },
+      { title:'Second AI Product Owner', xp:24000 },
+      { title:'AI Product Owner', xp:30000 }
     ];
 
-    // Level-Berechnung
     function determineLevel(xp) {
       let lvl = levelThresholds[0];
       for (let i=1; i<levelThresholds.length; i++){
@@ -321,9 +218,8 @@
       return lvl;
     }
 
-    // Header updaten
     function updateHeader() {
-      // Gesamt-XP
+      // Gesamt-XP berechnen
       let totalXP = 0;
       Object.keys(tasks).forEach(date=>{
         tasks[date].forEach((t,i)=>{
@@ -332,25 +228,25 @@
       });
       xpValue.textContent = `${totalXP} XP`;
 
-      // Monat
+      // Monatsfortschritt
       const diffDays = Math.floor((now - startDate)/(1000*60*60*24));
       const month    = Math.min(6, Math.floor(diffDays/30)+1);
       monthProgEl.textContent = `${month} / 6`;
 
-      // Level
+      // Level anzeigen
       const lvl = determineLevel(totalXP);
       levelDisplay.textContent = lvl.title;
 
-      // Fortschrittsbalken
+      // Balken füllen & Marker setzen
       const percent = (totalXP / 30000) * 100;
       progressBar.style.width = percent + '%';
       progressPtr.style.left  = percent + '%';
 
-      // Tägliche XP
+      // Tägliche XP anzeigen
       const todayStr = now.toISOString().slice(0,10);
-      const todaysTasks = tasks[todayStr] || [];
-      const possible = todaysTasks.reduce((s,t)=>s+t.xp,0);
-      const got      = todaysTasks.reduce((s,t,i)=>s + ((tasksDone[todayStr]?.[i])? t.xp : 0),0);
+      const todays = tasks[todayStr] || [];
+      const possible = todays.reduce((s,t)=>s+t.xp,0);
+      const got = todays.reduce((s,t,i)=>s + ((tasksDone[todayStr]?.[i])? t.xp : 0),0);
       dailyXPEl.textContent = `Heute: ${got} / ${possible} XP`;
 
       // Level-Details füllen
@@ -365,29 +261,30 @@
     // Kalender rendern
     function renderCalendar(){
       calendarEl.innerHTML = '';
-      const daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-      for(let d=1; d<=daysInMonth; d++){
-        const day = new Date(now.getFullYear(),now.getMonth(),d);
+      const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+      for(let d=1; d<=days; d++){
+        const day = new Date(now.getFullYear(), now.getMonth(), d);
         const ds  = day.toISOString().slice(0,10);
         const div = document.createElement('div');
         div.className = 'day';
         div.textContent = d;
         if(day < new Date().setHours(0,0,0,0)){
           div.classList.add('past');
-          div.classList.add(records[ds] ? 'done' : 'missed');
+          div.classList.add(records[ds]? 'done':'missed');
         }
         div.onclick = ()=> openTasks(ds);
         div.ondblclick = ()=>{
           if(day < new Date().setHours(0,0,0,0)){
             records[ds] = !records[ds];
-            localStorage.setItem('records',JSON.stringify(records)); renderCalendar(); updateHeader();
+            localStorage.setItem('records',JSON.stringify(records));
+            renderCalendar(); updateHeader();
           }
         };
         calendarEl.appendChild(div);
       }
     }
 
-    // Task-Ansicht
+    // Tasks öffnen
     let selectedDate = null;
     function openTasks(dateStr){
       selectedDate = dateStr;
@@ -402,23 +299,24 @@
       taskSection.style.display = 'none';
     };
 
-    // Import
+    // Import (append statt replace)
     importBtn.onclick = ()=>{
       const lines = tasksInput.value.split('\n').map(l=>l.trim()).filter(l=>l);
       if(!lines.length) return;
-      tasks[selectedDate] = lines.map(l=>{
+      const existing = tasks[selectedDate] || [];
+      const newTasks = lines.map(l=>{
         const m = l.match(/\((\d+)\s*XP\)$/i);
-        const xp = m? parseInt(m[1],10):0;
-        const desc = m? l.slice(0,m.index).trim():l;
-        return {desc,time:'',xp};
+        const xp = m? parseInt(m[1],10) : 0;
+        return { desc: m? l.slice(0,m.index).trim(): l, xp, time: '', duration: xp };
       });
+      tasks[selectedDate] = existing.concat(newTasks);
       localStorage.setItem('tasks',JSON.stringify(tasks));
       records[selectedDate] = false;
       localStorage.setItem('records',JSON.stringify(records));
       renderTasks(); renderCalendar(); updateHeader();
     };
 
-    // Render Tasks
+    // Tasks rendern
     function renderTasks(){
       const list = tasks[selectedDate]||[];
       const container = document.getElementById('tasksList');
@@ -434,39 +332,64 @@
           localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
           if(tasksDone[selectedDate].filter(Boolean).length===list.length){
             records[selectedDate]=true;
-            localStorage.setItem('records',JSON.stringify(records));
-            renderCalendar();
+            localStorage.setItem('records',JSON.stringify(records)); renderCalendar();
           }
           updateHeader();
         };
-        // Text
+        // Beschreibung
         const span = document.createElement('span');
         span.textContent = `${t.desc} (${t.xp} XP)`;
-        // Ändere XP
+        // XP ändern
         const xpBtn = document.createElement('button');
         xpBtn.className='xp-btn'; xpBtn.textContent='Ändere XP';
         xpBtn.onclick = ()=>{
           const neu = parseInt(prompt('Neue XP:',t.xp),10);
-          if(!isNaN(neu)){ t.xp=neu; localStorage.setItem('tasks',JSON.stringify(tasks)); renderTasks(); updateHeader();}
-        };
+          if(!isNaN(neu)){ t.xp=neu; t.duration=neu; localStorage.setItem('tasks',JSON.stringify(tasks)); renderTasks(); updateHeader();}
+        };  
+        // Kalender-Button
+        const calBtn = document.createElement('button');
+        calBtn.textContent = '→ Kalender';
+        calBtn.onclick = ()=> addCalendarEvent(t);
         // Rechtsklick löschen
         div.oncontextmenu = e=>{
           e.preventDefault();
           if(confirm('Aufgabe löschen?')){
             list.splice(i,1);
-            tasks[selectedDate]=list;
+            tasks[selectedDate] = list;
             delete tasksDone[selectedDate]?.[i];
             localStorage.setItem('tasks',JSON.stringify(tasks));
             localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
             renderTasks(); updateHeader();
           }
         };
-        div.append(chk,span,xpBtn);
+        div.append(chk,span,xpBtn,calBtn);
         container.appendChild(div);
       });
     }
 
-    // Google OAuth & Calendar Integration
+    // Event in Google Calendar anlegen
+    function addCalendarEvent(task){
+      let time = task.time;
+      if(!time){
+        time = prompt('Gib die Startzeit im Format HH:MM ein:');
+        task.time = time;
+        localStorage.setItem('tasks',JSON.stringify(tasks));
+      }
+      const start = new Date(`${selectedDate}T${time}:00`);
+      const end   = new Date(start.getTime() + (task.duration||0)*60000);
+      if(!gapi.auth2?.getAuthInstance?.().isSignedIn.get()){
+        return alert('Bitte erst Kalender verbinden');
+      }
+      const event = {
+        summary: task.desc,
+        start: { dateTime: start.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        end:   { dateTime: end.toISOString(),   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+      };
+      gapi.client.calendar.events.insert({ calendarId:'primary', resource:event })
+        .then(()=> alert('Termin erstellt'));
+    }
+
+    // Google OAuth & Calendar-Init
     const CLIENT_ID = '828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
     const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
     const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
@@ -490,8 +413,8 @@
             }
           });
           authorizeButton.disabled = false;
-          authorizeButton.onclick = () => tokenClient.requestAccessToken({ prompt:'consent' });
-          signoutButton.onclick   = () => {
+          authorizeButton.onclick = ()=> tokenClient.requestAccessToken({ prompt:'consent' });
+          signoutButton.onclick   = ()=>{
             const tok = gapi.client.getToken()?.access_token;
             if(tok) google.accounts.oauth2.revoke(tok);
             gapi.client.setToken('');
@@ -501,12 +424,12 @@
       updateHeader();
     }
     function updateSigninStatus(signedIn){
-      authorizeButton.style.display = signedIn ? 'none' : 'inline-block';
-      signoutButton.style.display   = signedIn ? 'inline-block' : 'none';
+      authorizeButton.style.display = signedIn?'none':'inline-block';
+      signoutButton.style.display   = signedIn?'inline-block':'none';
     }
     window.onload = handleClientLoad;
 
-    // Initial render
+    // Erstes Rendern
     renderCalendar();
     updateHeader();
   </script>
