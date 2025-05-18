@@ -1,100 +1,128 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KI Progress Tracker</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json" />
   <style>
-    body { font-family: sans-serif; margin: 1rem; }
-    #xp, #monthProgress, #level { margin-bottom: 0.5rem; font-size: 1.2rem; }
+    body { font-family: sans-serif; padding: 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    #xp, #monthProgress, #level { margin-bottom: 0.5rem; font-size: 1.1rem; }
     #calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 1rem; }
-    .day { border: 1px solid #ccc; padding: 0.5rem; text-align: center; cursor: pointer; }
+    .day { border: 1px solid #ccc; padding: 0.4rem; text-align: center; cursor: pointer; }
     .past.missed { background: #fdd; }
     .past.done { background: #cfc; }
+    .past.bonus { background: gold; }
     #tasksInput { width: 100%; height: 4rem; margin-bottom: 0.5rem; }
     #tasksList { margin-bottom: 1rem; }
-    button { padding: 0.5rem 1rem; margin-right: 0.5rem; }
+    .task-item { display: flex; align-items: center; margin-bottom: 0.3rem; }
+    .task-item input { margin-right: 0.5rem; }
+    button { padding: 0.4rem 0.8rem; margin-right: 0.5rem; }
   </style>
 </head>
 <body>
+  <h1>KI Lern-Tracker</h1>
   <script>
-    // Passwort-Prüfung
-    if (!localStorage.getItem('pwVerified')) {
-      const pw = prompt('Passwort eingeben:');
-      if (pw !== '2610') {
-        alert('Falsches Passwort');
-        throw 'Abbruch';
-      }
-      localStorage.setItem('pwVerified', 'true');
+    if (!localStorage.getItem("pwVerified")) {
+      const pw = prompt("Passwort eingeben:");
+      if (pw !== "2610") { alert("Falsches Passwort"); throw "Abbruch"; }
+      localStorage.setItem("pwVerified", "true");
     }
-    // Startdatum setzen
-    if (!localStorage.getItem('startDate')) {
-      localStorage.setItem('startDate', new Date().toISOString());
+    if (!localStorage.getItem("startDate")) {
+      localStorage.setItem("startDate", new Date().toISOString());
     }
-    const startDate = new Date(localStorage.getItem('startDate'));
+  </script>
+  <script>
+    const startDate = new Date(localStorage.getItem("startDate"));
     const now = new Date();
-    // Monat berechnen (1-10)
     const diffDays = Math.floor((now - startDate) / (1000*60*60*24));
     const currentMonth = Math.min(10, Math.floor(diffDays/30) + 1);
-    // Level berechnen
     const levelIndex = Math.min(6, Math.ceil(currentMonth/(10/6)));
-    const levels = ['Anfänger','Amateur','Fortgeschrittener','Profi','Second AI Product Owner','AI Product Owner'];
-    document.write(`<div id="xp">XP: ${diffDays * 100} / ${diffDays * 100}</div>`);
+    const levels = [
+      "Anfänger","Amateur","Fortgeschrittener","Profi",
+      "Second AI Product Owner","AI Product Owner"
+    ];
+    document.write(`<div id="xp">XP: ${diffDays*100} / ${1000}</div>`);
     document.write(`<div id="monthProgress">Monat: ${currentMonth} / 10</div>`);
     document.write(`<div id="level">Level: ${levels[levelIndex-1]}</div>`);
   </script>
+
   <div id="calendar"></div>
-  <textarea id="tasksInput" placeholder="Quests hier einfügen..."></textarea><br>
+
+  <textarea id="tasksInput" placeholder="Quests hier reinkopieren im Format: Aufgabe Beschreibung | DD.MM.YYYY"></textarea><br>
   <button id="importTasksBtn">Quests importieren</button>
   <div id="tasksList"></div>
+
   <script>
-    const calendarEl = document.getElementById('calendar');
+    const calendarEl = document.getElementById("calendar");
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth();
     const daysInMonth = new Date(year, month+1, 0).getDate();
-    const records = JSON.parse(localStorage.getItem('records') || '{}');
+
+    const records = JSON.parse(localStorage.getItem('records')||'{}');
+    const tasks = JSON.parse(localStorage.getItem('tasks')||'{}');
+    const tasksDone = JSON.parse(localStorage.getItem('tasksDone')||'{}');
+
     function renderCalendar() {
       calendarEl.innerHTML = '';
       for (let d=1; d<=daysInMonth; d++) {
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const dayEl = document.createElement('div');
-        dayEl.classList.add('day');
-        dayEl.textContent = d;
-        if (new Date(dateStr) < new Date().setHours(0,0,0,0)) {
-          dayEl.classList.add('past');
-          if (records[dateStr] === true) dayEl.classList.add('done');
-          else dayEl.classList.add('missed');
-        }
-        dayEl.addEventListener('click', () => {
-          records[dateStr] = !records[dateStr];
-          localStorage.setItem('records', JSON.stringify(records));
-          renderCalendar();
-        });
-        calendarEl.appendChild(dayEl);
+        const day = new Date(year, month, d);
+        const dateStr = day.toISOString().slice(0,10);
+        const past = day < new Date().setHours(0,0,0,0);
+        const el = document.createElement('div'); el.classList.add('day'); el.textContent=d;
+        if(past) el.classList.add('past');
+        if(records[dateStr]==='bonus') el.classList.add('bonus');
+        else if(records[dateStr]) el.classList.add('done');
+        else if(past) el.classList.add('missed');
+        el.addEventListener('click', ()=> loadTasks(dateStr));
+        calendarEl.appendChild(el);
       }
     }
     renderCalendar();
-    document.getElementById('importTasksBtn').addEventListener('click', () => {
-      const lines = document.getElementById('tasksInput').value.split('\n').filter(l => l.trim());
-      if (!lines.length) return;
-      const todayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '{}');
-      tasks[todayStr] = lines;
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-      renderTasks();
-      records[todayStr] = true;
-      localStorage.setItem('records', JSON.stringify(records));
+
+    function loadTasks(dateStr) {
+      const list = tasks[dateStr]||[];
+      const done = tasksDone[dateStr]||[];
+      const container = document.getElementById('tasksList'); container.innerHTML='';
+      list.forEach((desc,i)=>{
+        const div = document.createElement('div'); div.classList.add('task-item');
+        const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!done[i];
+        chk.addEventListener('change', ()=>{
+          done[i]=chk.checked;
+          tasksDone[dateStr]=done; localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
+          if(list.length>0 && done.filter(Boolean).length===list.length) { records[dateStr]=true; localStorage.setItem('records',JSON.stringify(records)); renderCalendar(); }
+        });
+        const span = document.createElement('span'); span.textContent=desc;
+        div.appendChild(chk); div.appendChild(span);
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById('importTasksBtn').addEventListener('click', ()=>{
+      const lines = document.getElementById('tasksInput').value.split('\n').map(l=>l.trim()).filter(l=>l);
+      lines.forEach(line=>{
+        const parts=line.split('|');
+        if(parts.length<2) return;
+        const desc=parts[0].trim(); const d=parts[1].trim().split('.');
+        const dateStr=`${d[2]}-${d[1].padStart(2,'0')}-${d[0].padStart(2,'0')}`;
+        tasks[dateStr]=tasks[dateStr]||[]; tasks[dateStr].push(desc);
+      });
+      localStorage.setItem('tasks',JSON.stringify(tasks));
+      const todayStr = today.toISOString().slice(0,10);
+      loadTasks(todayStr);
       renderCalendar();
     });
-    function renderTasks() {
-      const tasksDiv = document.getElementById('tasksList');
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '{}');
-      const todayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-      tasksDiv.innerHTML = (tasks[todayStr] || []).map(t => `<div>• ${t}</div>`).join('');
-    }
-    renderTasks();
+
+    // Auto mark past days missed
+    window.addEventListener('load', ()=>{
+      const todayStr = today.toISOString().slice(0,10);
+      Object.keys(tasks).forEach(d=>{});
+      renderCalendar();
+      loadTasks(todayStr);
+    });
   </script>
 </body>
 </html>
+
