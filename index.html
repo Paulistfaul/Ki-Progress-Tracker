@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>KI Progress Tracker</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
@@ -106,37 +106,24 @@
     #levelDetails li { margin:4px 0; }
   </style>
 
-  <!-- Google Identity & Calendar API -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google API -->
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
-
   <div class="container">
     <header>
       <h1>KI Progress Tracker</h1>
       <div class="stats">
-        <div class="card">
-          <div class="value" id="xpValue">0 XP</div>
-          <div class="label">Total XP</div>
-        </div>
-        <div class="card">
-          <div class="value" id="monthProgress">1 / 6</div>
-          <div class="label">Monat</div>
-        </div>
-        <div class="card" id="levelCard">
-          <div class="value" id="levelDisplay">Anfänger</div>
-          <div class="label">Level</div>
-        </div>
+        <div class="card"><div class="value" id="xpValue">0 XP</div><div class="label">Total XP</div></div>
+        <div class="card"><div class="value" id="monthProgress">1 / 6</div><div class="label">Monat</div></div>
+        <div class="card" id="levelCard"><div class="value" id="levelDisplay">Anfänger</div><div class="label">Level</div></div>
       </div>
-
       <div class="progress-bar">
         <div class="progress-bar-fill" id="progressBar"></div>
         <div class="progress-pointer" id="progressPointer"></div>
       </div>
       <div class="level-labels">
-        <span>0 XP</span><span>5k</span><span>10k</span>
-        <span>17.5k</span><span>24k</span><span>30k</span>
+        <span>0</span><span>5k</span><span>10k</span><span>17.5k</span><span>24k</span><span>30k</span>
       </div>
     </header>
 
@@ -148,18 +135,17 @@
     <div id="calendar"></div>
 
     <div id="taskSection">
-      <button id="backBtn">Zurück zur Übersicht</button>
+      <button id="backBtn">Zurück</button>
       <div id="dailyXP">Heute: 0/0 XP</div>
-      <textarea id="tasksInput" placeholder="Quests hier (je 1 Zeile, z.B. Beschreibung (50 XP))"></textarea>
+      <textarea id="tasksInput" placeholder="Quests pro Zeile (Beschreibung (XX XP))"></textarea>
       <button id="importTasksBtn">Quests importieren</button>
       <div id="tasksList"></div>
     </div>
   </div>
 
-  <!-- Level-Details Overlay -->
   <div id="levelDetails">
     <div class="box">
-      <h2>Dein Level-Fortschritt</h2>
+      <h2>Level-Fortschritt</h2>
       <progress id="levelProgress" max="30000" value="0"></progress>
       <ul id="levelList"></ul>
       <button onclick="toggleLevelDetails()">Schließen</button>
@@ -168,114 +154,111 @@
 
   <script>
     // Passwort & Startdatum
-    if (!localStorage.getItem('pwVerified')) {
-      const pw = prompt('Passwort eingeben:');
-      if (pw !== '2610') { alert('Falsches Passwort'); throw ''; }
+    if(!localStorage.getItem('pwVerified')){
+      const pw=prompt('Passwort:');
+      if(pw!=='2610'){alert('Falsches Passwort');throw'';}
       localStorage.setItem('pwVerified','true');
     }
-    if (!localStorage.getItem('startDate'))
-      localStorage.setItem('startDate', new Date().toISOString());
-    const startDate = new Date(localStorage.getItem('startDate'));
-    const now = new Date();
+    if(!localStorage.getItem('startDate'))
+      localStorage.setItem('startDate',new Date().toISOString());
+    const startDate=new Date(localStorage.getItem('startDate'));
+    const now=new Date();
 
-    // LocalStorage laden
-    const records   = JSON.parse(localStorage.getItem('records')   || '{}');
-    const tasks     = JSON.parse(localStorage.getItem('tasks')     || '{}');
-    const tasksDone = JSON.parse(localStorage.getItem('tasksDone') || '{}');
+    // Storage
+    const records=JSON.parse(localStorage.getItem('records')||'{}');
+    const tasks=JSON.parse(localStorage.getItem('tasks')||'{}');
+    const tasksDone=JSON.parse(localStorage.getItem('tasksDone')||'{}');
 
-    // DOM-Handles
-    const xpValue       = document.getElementById('xpValue');
-    const monthProgEl   = document.getElementById('monthProgress');
-    const levelCard     = document.getElementById('levelCard');
-    const levelDisplay  = document.getElementById('levelDisplay');
-    const progressBar   = document.getElementById('progressBar');
-    const progressPtr   = document.getElementById('progressPointer');
-    const dailyXPEl     = document.getElementById('dailyXP');
-    const tasksInput    = document.getElementById('tasksInput');
-    const importBtn     = document.getElementById('importTasksBtn');
-    const calendarEl    = document.getElementById('calendar');
-    const taskSection   = document.getElementById('taskSection');
-    const backBtn       = document.getElementById('backBtn');
-    const levelDetails  = document.getElementById('levelDetails');
-    const levelProgress = document.getElementById('levelProgress');
-    const levelList     = document.getElementById('levelList');
+    // DOM
+    const xpValue=document.getElementById('xpValue');
+    const monthProgEl=document.getElementById('monthProgress');
+    const levelCard=document.getElementById('levelCard');
+    const levelDisplay=document.getElementById('levelDisplay');
+    const progressBar=document.getElementById('progressBar');
+    const progressPtr=document.getElementById('progressPointer');
+    const dailyXPEl=document.getElementById('dailyXP');
+    const tasksInput=document.getElementById('tasksInput');
+    const importBtn=document.getElementById('importTasksBtn');
+    const calendarEl=document.getElementById('calendar');
+    const taskSection=document.getElementById('taskSection');
+    const backBtn=document.getElementById('backBtn');
+    const levelDetails=document.getElementById('levelDetails');
+    const levelProgress=document.getElementById('levelProgress');
+    const levelList=document.getElementById('levelList');
 
-    // Levelgrenzen neu
-    const levelThresholds = [
-      { title:'Anfänger', xp:0 },
-      { title:'Amateur', xp:5000 },
-      { title:'Fortgeschrittener', xp:10000 },
-      { title:'Profi', xp:17500 },
-      { title:'Second AI Product Owner', xp:24000 },
-      { title:'AI Product Owner', xp:30000 }
+    // Level-Grenzen
+    const levelThresholds=[
+      {title:'Anfänger',xp:0},
+      {title:'Amateur',xp:5000},
+      {title:'Fortgeschrittener',xp:10000},
+      {title:'Profi',xp:17500},
+      {title:'Second AI Product Owner',xp:24000},
+      {title:'AI Product Owner',xp:30000}
     ];
 
-    function determineLevel(xp) {
-      let lvl = levelThresholds[0];
-      for (let i=1; i<levelThresholds.length; i++){
-        if (xp >= levelThresholds[i].xp) lvl = levelThresholds[i];
+    function determineLevel(xp){
+      let lvl=levelThresholds[0];
+      for(let i=1;i<levelThresholds.length;i++){
+        if(xp>=levelThresholds[i].xp)lvl=levelThresholds[i];
       }
       return lvl;
     }
 
-    function updateHeader() {
-      // Gesamt-XP berechnen
-      let totalXP = 0;
-      Object.keys(tasks).forEach(date=>{
+    function updateHeader(){
+      // Total XP
+      let totalXP=0;
+      for(const date in tasks){
         tasks[date].forEach((t,i)=>{
-          if (tasksDone[date]?.[i]) totalXP += t.xp;
+          if(tasksDone[date]?.[i]) totalXP+=t.xp;
         });
-      });
-      xpValue.textContent = `${totalXP} XP`;
+      }
+      xpValue.textContent=`${totalXP} XP`;
 
-      // Monatsfortschritt
-      const diffDays = Math.floor((now - startDate)/(1000*60*60*24));
-      const month    = Math.min(6, Math.floor(diffDays/30)+1);
-      monthProgEl.textContent = `${month} / 6`;
+      // Monat
+      const diffDays=Math.floor((now-startDate)/(1000*60*60*24));
+      const month=Math.min(6,Math.floor(diffDays/30)+1);
+      monthProgEl.textContent=`${month} / 6`;
 
-      // Level anzeigen
-      const lvl = determineLevel(totalXP);
-      levelDisplay.textContent = lvl.title;
+      // Level
+      const lvl=determineLevel(totalXP);
+      levelDisplay.textContent=lvl.title;
 
-      // Balken füllen & Marker setzen
-      const percent = (totalXP / 30000) * 100;
-      progressBar.style.width = percent + '%';
-      progressPtr.style.left  = percent + '%';
+      // Progress-Bar
+      const pct=(totalXP/30000)*100;
+      progressBar.style.width=pct+'%';
+      progressPtr.style.left=pct+'%';
 
-      // Tägliche XP anzeigen
-      const todayStr = now.toISOString().slice(0,10);
-      const todays = tasks[todayStr] || [];
-      const possible = todays.reduce((s,t)=>s+t.xp,0);
-      const got = todays.reduce((s,t,i)=>s + ((tasksDone[todayStr]?.[i])? t.xp : 0),0);
-      dailyXPEl.textContent = `Heute: ${got} / ${possible} XP`;
+      // Daily XP
+      const todayStr=now.toISOString().slice(0,10);
+      const todays=tasks[todayStr]||[];
+      const possible=todays.reduce((s,t)=>s+t.xp,0);
+      const got=todays.reduce((s,t,i)=>s+(tasksDone[todayStr]?.[i]?t.xp:0),0);
+      dailyXPEl.textContent=`Heute: ${got} / ${possible} XP`;
 
-      // Level-Details füllen
-      levelProgress.value = totalXP;
-      levelList.innerHTML = levelThresholds.map(l=>`<li>${l.title}: ab ${l.xp} XP</li>`).join('');
+      // Level-Details
+      levelProgress.value=totalXP;
+      levelList.innerHTML=levelThresholds.map(l=>`<li>${l.title}: ab ${l.xp} XP</li>`).join('');
     }
 
-    // Overlay
-    levelCard.onclick = ()=> levelDetails.style.display = 'flex';
-    function toggleLevelDetails(){ levelDetails.style.display = 'none'; }
+    levelCard.onclick=()=>levelDetails.style.display='flex';
+    function toggleLevelDetails(){ levelDetails.style.display='none'; }
 
     // Kalender rendern
     function renderCalendar(){
-      calendarEl.innerHTML = '';
-      const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-      for(let d=1; d<=days; d++){
-        const day = new Date(now.getFullYear(), now.getMonth(), d);
-        const ds  = day.toISOString().slice(0,10);
-        const div = document.createElement('div');
-        div.className = 'day';
-        div.textContent = d;
-        if(day < new Date().setHours(0,0,0,0)){
-          div.classList.add('past');
-          div.classList.add(records[ds]? 'done':'missed');
+      calendarEl.innerHTML='';
+      const days=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      for(let d=1;d<=days;d++){
+        const day=new Date(now.getFullYear(),now.getMonth(),d);
+        const ds=day.toISOString().slice(0,10);
+        const div=document.createElement('div');
+        div.className='day'; div.textContent=d;
+        if(day<new Date().setHours(0,0,0,0)){
+          div.classList.add('past',records[ds]?'done':'missed');
         }
-        div.onclick = ()=> openTasks(ds);
-        div.ondblclick = ()=>{
-          if(day < new Date().setHours(0,0,0,0)){
-            records[ds] = !records[ds];
+        div.onclick=()=>openTasks(ds);
+        div.ondblclick=()=>{
+          if(day<new Date().setHours(0,0,0,0)){
+            records[ds]=!records[ds];
             localStorage.setItem('records',JSON.stringify(records));
             renderCalendar(); updateHeader();
           }
@@ -284,78 +267,72 @@
       }
     }
 
-    // Tasks öffnen
-    let selectedDate = null;
+    let selectedDate=null;
     function openTasks(dateStr){
-      selectedDate = dateStr;
-      calendarEl.style.display = 'none';
-      document.querySelector('.controls').style.display = 'none';
-      taskSection.style.display = 'block';
+      selectedDate=dateStr;
+      calendarEl.style.display='none';
+      document.querySelector('.controls').style.display='none';
+      taskSection.style.display='block';
       renderTasks();
     }
-    backBtn.onclick = ()=>{
-      calendarEl.style.display = 'grid';
-      document.querySelector('.controls').style.display = 'flex';
-      taskSection.style.display = 'none';
+    backBtn.onclick=()=>{
+      calendarEl.style.display='grid';
+      document.querySelector('.controls').style.display='flex';
+      taskSection.style.display='none';
     };
 
-    // Import (append statt replace)
-    importBtn.onclick = ()=>{
-      const lines = tasksInput.value.split('\n').map(l=>l.trim()).filter(l=>l);
-      if(!lines.length) return;
-      const existing = tasks[selectedDate] || [];
-      const newTasks = lines.map(l=>{
-        const m = l.match(/\((\d+)\s*XP\)$/i);
-        const xp = m? parseInt(m[1],10) : 0;
-        return { desc: m? l.slice(0,m.index).trim(): l, xp, time: '', duration: xp };
+    // Import anhängen
+    importBtn.onclick=()=>{
+      const lines=tasksInput.value.split('\n').map(l=>l.trim()).filter(l=>l);
+      if(!lines.length)return;
+      const existing=tasks[selectedDate]||[];
+      const adds=lines.map(l=>{
+        const m=l.match(/\((\d+)\s*XP\)$/i);
+        const xp=m?parseInt(m[1],10):0;
+        return {desc:m?l.slice(0,m.index).trim():l,xp,time:'',duration:xp};
       });
-      tasks[selectedDate] = existing.concat(newTasks);
+      tasks[selectedDate]=existing.concat(adds);
       localStorage.setItem('tasks',JSON.stringify(tasks));
-      records[selectedDate] = false;
+      records[selectedDate]=false;
       localStorage.setItem('records',JSON.stringify(records));
       renderTasks(); renderCalendar(); updateHeader();
     };
 
     // Tasks rendern
     function renderTasks(){
-      const list = tasks[selectedDate]||[];
-      const container = document.getElementById('tasksList');
-      container.innerHTML = '';
+      const list=tasks[selectedDate]||[];
+      const container=document.getElementById('tasksList');
+      container.innerHTML='';
       list.forEach((t,i)=>{
-        const div = document.createElement('div'); div.className='task-item';
-        // Checkbox
-        const chk = document.createElement('input'); chk.type='checkbox';
-        chk.checked = tasksDone[selectedDate]?.[i]||false;
-        chk.onchange = ()=>{
-          tasksDone[selectedDate] = tasksDone[selectedDate]||[];
-          tasksDone[selectedDate][i] = chk.checked;
+        const div=document.createElement('div'); div.className='task-item';
+        const chk=document.createElement('input'); chk.type='checkbox';
+        chk.checked=tasksDone[selectedDate]?.[i]||false;
+        chk.onchange=()=>{
+          tasksDone[selectedDate]=tasksDone[selectedDate]||[];
+          tasksDone[selectedDate][i]=chk.checked;
           localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
           if(tasksDone[selectedDate].filter(Boolean).length===list.length){
             records[selectedDate]=true;
-            localStorage.setItem('records',JSON.stringify(records)); renderCalendar();
+            localStorage.setItem('records',JSON.stringify(records));
+            renderCalendar();
           }
           updateHeader();
         };
-        // Beschreibung
-        const span = document.createElement('span');
-        span.textContent = `${t.desc} (${t.xp} XP)`;
-        // XP ändern
-        const xpBtn = document.createElement('button');
+        const span=document.createElement('span');
+        span.textContent=`${t.desc} (${t.xp} XP)`;
+        const xpBtn=document.createElement('button');
         xpBtn.className='xp-btn'; xpBtn.textContent='Ändere XP';
-        xpBtn.onclick = ()=>{
-          const neu = parseInt(prompt('Neue XP:',t.xp),10);
+        xpBtn.onclick=()=>{
+          const neu=parseInt(prompt('Neue XP:',t.xp),10);
           if(!isNaN(neu)){ t.xp=neu; t.duration=neu; localStorage.setItem('tasks',JSON.stringify(tasks)); renderTasks(); updateHeader();}
-        };  
-        // Kalender-Button
-        const calBtn = document.createElement('button');
-        calBtn.textContent = '→ Kalender';
-        calBtn.onclick = ()=> addCalendarEvent(t);
-        // Rechtsklick löschen
-        div.oncontextmenu = e=>{
+        };
+        const calBtn=document.createElement('button');
+        calBtn.textContent='→ Kalender';
+        calBtn.onclick=()=>addCalendarEvent(t);
+        div.oncontextmenu=e=>{
           e.preventDefault();
           if(confirm('Aufgabe löschen?')){
-            list.splice(i,1);
-            tasks[selectedDate] = list;
+            list.splice(i,1); tasks[selectedDate]=list;
             delete tasksDone[selectedDate]?.[i];
             localStorage.setItem('tasks',JSON.stringify(tasks));
             localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
@@ -367,69 +344,57 @@
       });
     }
 
-    // Event in Google Calendar anlegen
+    // Google OAuth & Calendar
+    const CLIENT_ID='828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
+    const API_KEY='AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
+    const DISCOVERY_DOCS=['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
+    const SCOPES='https://www.googleapis.com/auth/calendar.events';
+    const authorizeButton=document.getElementById('authorize_button');
+    const signoutButton=document.getElementById('signout_button');
+
     function addCalendarEvent(task){
-      let time = task.time;
+      let time=task.time;
       if(!time){
-        time = prompt('Gib die Startzeit im Format HH:MM ein:');
-        task.time = time;
+        time=prompt('Startzeit HH:MM:'); task.time=time;
         localStorage.setItem('tasks',JSON.stringify(tasks));
       }
-      const start = new Date(`${selectedDate}T${time}:00`);
-      const end   = new Date(start.getTime() + (task.duration||0)*60000);
-      if(!gapi.auth2?.getAuthInstance?.().isSignedIn.get()){
-        return alert('Bitte erst Kalender verbinden');
+      const start=new Date(`${selectedDate}T${time}:00`);
+      const end=new Date(start.getTime()+ (task.duration||0)*60000);
+      if(!gapi.auth2.getAuthInstance().isSignedIn.get()){
+        return alert('Bitte Kalender verbinden');
       }
-      const event = {
+      const event={
         summary: task.desc,
-        start: { dateTime: start.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-        end:   { dateTime: end.toISOString(),   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+        start:{dateTime:start.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone},
+        end:{dateTime:end.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone}
       };
-      gapi.client.calendar.events.insert({ calendarId:'primary', resource:event })
-        .then(()=> alert('Termin erstellt'));
+      gapi.client.calendar.events.insert({calendarId:'primary',resource:event})
+        .then(()=>alert('Event erstellt'));
     }
 
-    // Google OAuth & Calendar-Init
-    const CLIENT_ID = '828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
-    const API_KEY   = 'AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
-    const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-    const authorizeButton = document.getElementById('authorize_button');
-    const signoutButton   = document.getElementById('signout_button');
-    let tokenClient;
+    function initClient(){
+      gapi.client.init({
+        apiKey:API_KEY,
+        discoveryDocs:DISCOVERY_DOCS,
+        clientId:CLIENT_ID,
+        scope:SCOPES,
+        cookiepolicy:'single_host_origin'
+      }).then(()=>{
+        const auth=gapi.auth2.getAuthInstance();
+        auth.isSignedIn.listen(updateSigninStatus);
+        updateSigninStatus(auth.isSignedIn.get());
+        authorizeButton.disabled=false;
+        authorizeButton.onclick=()=>auth.signIn();
+        signoutButton.onclick=()=>auth.signOut();
+      });
+    }
+    function updateSigninStatus(isSignedIn){
+      authorizeButton.style.display=isSignedIn?'none':'inline-block';
+      signoutButton.style.display=isSignedIn?'inline-block':'none';
+    }
+    gapi.load('client:auth2',initClient);
 
-    function handleClientLoad(){
-      gapi.load('client', initGapiClient);
-    }
-    function initGapiClient(){
-      gapi.client.init({ apiKey:API_KEY, discoveryDocs:DISCOVERY_DOCS })
-        .then(()=>{
-          tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: resp => {
-              if(resp.error) console.error(resp);
-              else updateSigninStatus(true);
-            }
-          });
-          authorizeButton.disabled = false;
-          authorizeButton.onclick = ()=> tokenClient.requestAccessToken({ prompt:'consent' });
-          signoutButton.onclick   = ()=>{
-            const tok = gapi.client.getToken()?.access_token;
-            if(tok) google.accounts.oauth2.revoke(tok);
-            gapi.client.setToken('');
-            updateSigninStatus(false);
-          };
-        });
-      updateHeader();
-    }
-    function updateSigninStatus(signedIn){
-      authorizeButton.style.display = signedIn?'none':'inline-block';
-      signoutButton.style.display   = signedIn?'inline-block':'none';
-    }
-    window.onload = handleClientLoad;
-
-    // Erstes Rendern
+    // First render
     renderCalendar();
     updateHeader();
   </script>
