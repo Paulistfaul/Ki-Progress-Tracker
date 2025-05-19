@@ -13,8 +13,8 @@
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0; font-family: 'Inter', sans-serif;
-      background: var(--background); color: var(--text);
+      margin:0; font-family:'Inter',sans-serif;
+      background:var(--background); color:var(--text);
     }
     .container { max-width:600px; margin:0 auto; padding:1rem; }
     header { text-align:center; margin-bottom:1rem; }
@@ -51,8 +51,7 @@
       padding:.6rem 1rem; font-weight:600; box-shadow:var(--shadow);
       cursor:pointer; transition:background .3s;
     }
-    button:disabled { opacity:.6; cursor:default; }
-    button:hover:not(:disabled) { background:#43a047; }
+    button:hover { background:#43a047; }
 
     #calendar {
       display:grid; grid-template-columns:repeat(7,1fr);
@@ -63,8 +62,8 @@
       box-shadow:var(--shadow); padding:.5rem; text-align:center;
       cursor:pointer;
     }
-    .day.past.done   { background:#e8f5e9; }
-    .day.past.missed { background:#fdecea; }
+    .day.done   { background:#e8f5e9; }
+    .day.missed { background:#fdecea; }
 
     #taskSection {
       display:none; background:var(--card-bg);
@@ -81,31 +80,10 @@
       display:flex; align-items:center; justify-content:space-between;
       background:var(--background); padding:.5rem;
       border-radius:var(--radius); margin-bottom:.4rem;
-      position:relative;
     }
     .task-item span { flex:1; margin-left:.5rem; }
-    .task-item .xp-btn {
-      background:transparent; border:none; color:var(--primary);
-      cursor:pointer; font-size:.85rem;
-    }
-    .task-item:hover { background:#f0f0f0; }
-
-    /* Overlay */
-    #levelDetails {
-      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.5); align-items:center; justify-content:center;
-    }
-    #levelDetails .box {
-      background:var(--card-bg); padding:1rem; border-radius:var(--radius);
-      width:90%; max-width:360px;
-    }
-    #levelDetails progress {
-      width:100%; height:1rem; margin-bottom:.5rem;
-    }
-    #levelDetails ul { list-style:none; padding:0; font-size:.85rem; }
-    #levelDetails li { margin:4px 0; }
+    .task-item button { margin-left:.5rem; }
   </style>
-
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
@@ -127,7 +105,7 @@
     </header>
 
     <div class="controls">
-      <button id="authorize_button" disabled>Kalender verbinden</button>
+      <button id="authorize_button">Kalender verbinden</button>
       <button id="signout_button" style="display:none">Abmelden</button>
     </div>
 
@@ -142,15 +120,6 @@
     </div>
   </div>
 
-  <div id="levelDetails">
-    <div class="box">
-      <h2>Level-Fortschritt</h2>
-      <progress id="levelProgress" max="30000" value="0"></progress>
-      <ul id="levelList"></ul>
-      <button onclick="toggleLevelDetails()">Schließen</button>
-    </div>
-  </div>
-
   <script>
     // Passwort & Startdatum
     if (!localStorage.getItem('pwVerified')) {
@@ -161,12 +130,11 @@
     if (!localStorage.getItem('startDate'))
       localStorage.setItem('startDate', new Date().toISOString());
 
-    // Storage laden
-    const records   = JSON.parse(localStorage.getItem('records')   || '{}');
-    const tasks     = JSON.parse(localStorage.getItem('tasks')     || '{}');
-    const tasksDone = JSON.parse(localStorage.getItem('tasksDone') || '{}');
+    // Daten-Storage
+    const tasks     = JSON.parse(localStorage.getItem('tasks')   || '{}');
+    const tasksDone = JSON.parse(localStorage.getItem('tasksDone')|| '{}');
 
-    // DOM
+    // DOM-Elemente
     const xpValue       = document.getElementById('xpValue');
     const monthProgEl   = document.getElementById('monthProgress');
     const levelCard     = document.getElementById('levelCard');
@@ -179,10 +147,8 @@
     const calendarEl    = document.getElementById('calendar');
     const taskSection   = document.getElementById('taskSection');
     const backBtn       = document.getElementById('backBtn');
-    const levelDetails  = document.getElementById('levelDetails');
-    const levelProgress = document.getElementById('levelProgress');
-    const levelList     = document.getElementById('levelList');
 
+    // Auswahl für Aufgabenansicht
     let selectedDate = null;
 
     // Level-Grenzen
@@ -195,186 +161,166 @@
       { title:'AI Product Owner',        xp:30000}
     ];
     function determineLevel(xp){
-      let lvl=levelThresholds[0];
-      for(let i=1;i<levelThresholds.length;i++){
-        if(xp>=levelThresholds[i].xp) lvl=levelThresholds[i];
+      let lvl = levelThresholds[0];
+      for (let i=1; i<levelThresholds.length; i++){
+        if (xp >= levelThresholds[i].xp) lvl = levelThresholds[i];
       }
       return lvl;
     }
 
+    // Header aktualisieren
     function updateHeader(){
       const now = new Date();
+      const todayStr = now.toISOString().slice(0,10);
+
       // Gesamt-XP
-      let totalXP=0;
-      for(const d in tasks){
-        tasks[d].forEach((t,i)=>{
-          if(tasksDone[d]?.[i]) totalXP+=t.xp;
-        });
-      }
-      xpValue.textContent=`${totalXP} XP`;
+      let totalXP = 0;
+      Object.values(tasks).flat().forEach(t=>{ 
+        // wir zählen nur abgehakte Tasks
+        for (let date in tasks) {
+          tasks[date].forEach((task,i)=>{
+            if (tasksDone[date]?.[i]) totalXP += task.xp;
+          });
+        }
+      });
+      xpValue.textContent = `${totalXP} XP`;
 
       // Monat
-      const startDate=new Date(localStorage.getItem('startDate'));
-      const diffDays=Math.floor((now-startDate)/(1000*60*60*24));
-      const month=Math.min(6,Math.floor(diffDays/30)+1);
-      monthProgEl.textContent=`${month} / 6`;
+      const startDate = new Date(localStorage.getItem('startDate'));
+      const diffDays = Math.floor((now - startDate)/(1000*60*60*24));
+      const month = Math.min(6, Math.floor(diffDays/30)+1);
+      monthProgEl.textContent = `${month} / 6`;
 
       // Level
-      const lvl=determineLevel(totalXP);
-      levelDisplay.textContent=lvl.title;
+      const lvl = determineLevel(totalXP);
+      levelDisplay.textContent = lvl.title;
 
-      // Balken
-      const pct=(totalXP/30000)*100;
-      progressBar.style.width=pct+'%';
-      progressPtr.style.left=pct+'%';
+      // Progress-Bar
+      const pct = (totalXP/30000)*100;
+      progressBar.style.width = pct + '%';
+      progressPtr.style.left  = pct + '%';
 
-      // "Heute" XP bezieht sich auf selectedDate, falls aktiv, sonst auf wirklich heute
-      const key = selectedDate || now.toISOString().slice(0,10);
-      const list = tasks[key]||[];
-      const possible = list.reduce((s,t)=>s+t.xp,0);
-      const got = list.reduce((s,t,i)=>s + ((tasksDone[key]?.[i])?t.xp:0),0);
-      dailyXPEl.textContent=`Heute: ${got} / ${possible} XP`;
-
-      // Overlay-Inhalt
-      levelProgress.value = totalXP;
-      levelList.innerHTML = levelThresholds.map(l=>`<li>${l.title}: ab ${l.xp} XP</li>`).join('');
+      // Heute XP → bei geöffneter Ansicht auf selectedDate, sonst echt heute
+      const key = selectedDate || todayStr;
+      const todays = tasks[key] || [];
+      const possible = todays.reduce((s,t)=>s+t.xp,0);
+      const got = todays.reduce((s,t,i)=>s + ((tasksDone[key]?.[i])?t.xp:0),0);
+      dailyXPEl.textContent = `Heute: ${got} / ${possible} XP`;
     }
-
-    levelCard.onclick=()=>levelDetails.style.display='flex';
-    function toggleLevelDetails(){ levelDetails.style.display='none'; }
 
     // Kalender rendern
     function renderCalendar(){
-      const now=new Date();
-      calendarEl.innerHTML='';
-      const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-      for(let d=1;d<=daysInMonth;d++){
-        const day=new Date(now.getFullYear(),now.getMonth(),d);
-        const ds=day.toISOString().slice(0,10);
-        const div=document.createElement('div');
-        div.className='day'; div.textContent=d;
-        if(day<new Date().setHours(0,0,0,0)){
-          div.classList.add('past',records[ds]?'done':'missed');
-        }
-        div.onclick=()=>{ selectedDate=ds; openTasks(ds); };
-        div.ondblclick=()=>{
-          if(day<new Date().setHours(0,0,0,0)){
-            records[ds]=!records[ds];
-            localStorage.setItem('records',JSON.stringify(records));
-            renderCalendar(); updateHeader();
+      const now = new Date();
+      calendarEl.innerHTML = '';
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+      for(let d=1; d<=daysInMonth; d++){
+        const day = new Date(now.getFullYear(), now.getMonth(), d);
+        const ds  = day.toISOString().slice(0,10);
+        const div = document.createElement('div');
+        div.className = 'day';
+        div.textContent = d;
+        // nur für zurückliegende Tage: 
+        if (day < new Date().setHours(0,0,0,0)) {
+          const tasksForDay = tasks[ds] || [];
+          const doneCount = (tasksDone[ds] || []).filter(Boolean).length;
+          if (doneCount > 0) {
+            div.classList.add('done');
+          } else if (tasksForDay.length > 0) {
+            div.classList.add('missed');
           }
-        };
+        }
+        div.onclick = ()=> openTasks(ds);
         calendarEl.appendChild(div);
       }
-      // Wenn noch kein selectedDate, setzen wir es auf heute
-      if(!selectedDate){
-        selectedDate=new Date().toISOString().slice(0,10);
-      }
     }
 
+    // Tasks öffnen
     function openTasks(dateStr){
-      calendarEl.style.display='none';
-      document.querySelector('.controls').style.display='none';
-      taskSection.style.display='block';
-      updateHeader();
+      selectedDate = dateStr;
+      calendarEl.style.display = 'none';
+      document.querySelector('.controls').style.display = 'none';
+      taskSection.style.display = 'block';
       renderTasks();
+      updateHeader();
     }
-    backBtn.onclick=()=>{
-      calendarEl.style.display='grid';
-      document.querySelector('.controls').style.display='flex';
-      taskSection.style.display='none';
-      selectedDate=null;
+    backBtn.onclick = ()=>{
+      selectedDate = null;
+      calendarEl.style.display = 'grid';
+      document.querySelector('.controls').style.display = 'flex';
+      taskSection.style.display = 'none';
       updateHeader();
     };
 
-    // Import
-    importBtn.onclick=()=>{
-      const lines=tasksInput.value.split('\n').map(l=>l.trim()).filter(l=>l);
-      if(!lines.length)return;
-      const ex=tasks[selectedDate]||[];
-      const adds=lines.map(l=>{
-        const m=l.match(/\((\d+)\s*XP\)$/i);
-        const xp=m?parseInt(m[1],10):0;
-        return {desc:m?l.slice(0,m.index).trim():l,xp,time:'',duration:xp};
+    // Quests importieren
+    importBtn.onclick = ()=>{
+      const lines = tasksInput.value.split('\n').map(l=>l.trim()).filter(l=>l);
+      if (!lines.length) return;
+      const current = tasks[selectedDate] || [];
+      const adds = lines.map(l=>{
+        const m = l.match(/\((\d+)\s*XP\)$/i);
+        const xp = m ? parseInt(m[1],10) : 0;
+        return { desc: m ? l.slice(0,m.index).trim() : l, xp, time:'', duration:xp };
       });
-      tasks[selectedDate]=ex.concat(adds);
-      localStorage.setItem('tasks',JSON.stringify(tasks));
-      records[selectedDate]=false;
-      localStorage.setItem('records',JSON.stringify(records));
-      renderTasks(); updateHeader();
+      tasks[selectedDate] = current.concat(adds);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks(); updateHeader(); renderCalendar();
     };
 
-    // Render Tasks
+    // Tasks rendern
     function renderTasks(){
-      const list=tasks[selectedDate]||[];
-      const container=document.getElementById('tasksList');
-      container.innerHTML='';
+      const list = tasks[selectedDate] || [];
+      const container = document.getElementById('tasksList');
+      container.innerHTML = '';
       list.forEach((t,i)=>{
-        const div=document.createElement('div'); div.className='task-item';
-        const chk=document.createElement('input'); chk.type='checkbox';
-        chk.checked=tasksDone[selectedDate]?.[i]||false;
-        chk.onchange=()=>{
-          tasksDone[selectedDate]=tasksDone[selectedDate]||[];
-          tasksDone[selectedDate][i]=chk.checked;
-          localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
-          if(tasksDone[selectedDate].filter(Boolean).length===list.length){
-            records[selectedDate]=true;
-            localStorage.setItem('records',JSON.stringify(records));
-            renderCalendar();
-          }
-          updateHeader();
+        const div = document.createElement('div');
+        div.className = 'task-item';
+        // Checkbox
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = tasksDone[selectedDate]?.[i] || false;
+        chk.onchange = ()=>{
+          tasksDone[selectedDate] = tasksDone[selectedDate] || [];
+          tasksDone[selectedDate][i] = chk.checked;
+          localStorage.setItem('tasksDone', JSON.stringify(tasksDone));
+          updateHeader(); renderCalendar();
         };
-        const span=document.createElement('span');
-        span.textContent=`${t.desc} (${t.xp} XP)`;
-        const xpBtn=document.createElement('button');
-        xpBtn.className='xp-btn'; xpBtn.textContent='Ändere XP';
-        xpBtn.onclick=()=>{
-          const neu=parseInt(prompt('Neue XP:',t.xp),10);
-          if(!isNaN(neu)){ t.xp=neu; t.duration=neu;
-            localStorage.setItem('tasks',JSON.stringify(tasks));
-            renderTasks(); updateHeader();
+        // Text
+        const span = document.createElement('span');
+        span.textContent = `${t.desc} (${t.xp} XP)`;
+        // XP-Ändern
+        const xpBtn = document.createElement('button');
+        xpBtn.textContent = 'Ändere XP';
+        xpBtn.onclick = ()=>{
+          const neu = parseInt(prompt('Neue XP:', t.xp),10);
+          if (!isNaN(neu)) {
+            t.xp = neu;
+            t.duration = neu;
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks(); updateHeader(); renderCalendar();
           }
         };
-        const calBtn=document.createElement('button');
-        calBtn.textContent='→ Kalender';
-        calBtn.onclick=()=>addCalendarEvent(t);
-        div.oncontextmenu=e=>{
+        // Kalender-Button
+        const calBtn = document.createElement('button');
+        calBtn.textContent = '→ Kalender';
+        calBtn.onclick = ()=> addCalendarEvent(t);
+        // Rechtklick = löschen
+        div.oncontextmenu = e=>{
           e.preventDefault();
-          if(confirm('Aufgabe löschen?')){
-            list.splice(i,1); tasks[selectedDate]=list;
+          if (confirm('Aufgabe löschen?')) {
+            list.splice(i,1);
+            tasks[selectedDate] = list;
             delete tasksDone[selectedDate]?.[i];
-            localStorage.setItem('tasks',JSON.stringify(tasks));
-            localStorage.setItem('tasksDone',JSON.stringify(tasksDone));
-            renderTasks(); updateHeader();
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            localStorage.setItem('tasksDone', JSON.stringify(tasksDone));
+            renderTasks(); updateHeader(); renderCalendar();
           }
         };
-        div.append(chk,span,xpBtn,calBtn);
+        div.append(chk, span, xpBtn, calBtn);
         container.appendChild(div);
       });
     }
 
-    // Kalender-Event
-    function addCalendarEvent(task){
-      let time=task.time;
-      if(!time){
-        time=prompt('Startzeit HH:MM eingeben:');
-        task.time=time;
-        localStorage.setItem('tasks',JSON.stringify(tasks));
-      }
-      const start=new Date(`${selectedDate}T${time}:00`);
-      const end=new Date(start.getTime() + (task.duration||0)*60000);
-      const auth=gapi.auth2.getAuthInstance();
-      if(!auth.isSignedIn.get()){ return alert('Bitte erst Kalender verbinden'); }
-      const event={
-        summary:task.desc,
-        start:{dateTime:start.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone},
-        end:{dateTime:end.toISOString(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone}
-      };
-      gapi.client.calendar.events.insert({calendarId:'primary',resource:event})
-        .then(()=>alert('Termin erstellt'));
-    }
-
-    // Google OAuth
+    // Google OAuth & Calendar-Event
     const CLIENT_ID='828803560489-o5hh7nlg16oek9v7d1a5l4upd038l0gq.apps.googleusercontent.com';
     const API_KEY='AIzaSyBRZDlKOcizdAV9NSSPweyBCV1_ce0uv1I';
     const DISCOVERY_DOCS=['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
@@ -382,29 +328,48 @@
     const authorizeButton=document.getElementById('authorize_button');
     const signoutButton=document.getElementById('signout_button');
 
+    function addCalendarEvent(task){
+      let time = task.time;
+      if (!time) {
+        time = prompt('Startzeit HH:MM eingeben:');
+        task.time = time;
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+      }
+      const start = new Date(`${selectedDate}T${time}:00`);
+      const end = new Date(start.getTime() + (task.duration||0)*60000);
+      const auth = gapi.auth2.getAuthInstance();
+      if (!auth.isSignedIn.get()) return alert('Bitte erst Kalender verbinden');
+      const event = {
+        summary: task.desc,
+        start: { dateTime: start.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        end:   { dateTime: end.toISOString(),   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+      };
+      gapi.client.calendar.events.insert({ calendarId:'primary', resource: event })
+        .then(()=> alert('Termin erstellt'));
+    }
+
     function initClient(){
       gapi.client.init({
-        apiKey:API_KEY,
-        discoveryDocs:DISCOVERY_DOCS,
-        clientId:CLIENT_ID,
-        scope:SCOPES,
-        cookiepolicy:'single_host_origin'
+        apiKey: API_KEY,
+        discoveryDocs: DISCOVERY_DOCS,
+        clientId: CLIENT_ID,
+        scope: SCOPES,
+        cookiepolicy: 'single_host_origin'
       }).then(()=>{
-        const auth=gapi.auth2.getAuthInstance();
+        const auth = gapi.auth2.getAuthInstance();
         auth.isSignedIn.listen(updateSigninStatus);
         updateSigninStatus(auth.isSignedIn.get());
-        authorizeButton.disabled=false;
-        authorizeButton.onclick=()=>auth.signIn();
-        signoutButton.onclick=()=>auth.signOut();
+        authorizeButton.onclick = () => auth.signIn();
+        signoutButton.onclick   = () => auth.signOut();
       });
     }
     function updateSigninStatus(signedIn){
-      authorizeButton.style.display=signedIn?'none':'inline-block';
-      signoutButton.style.display=signedIn?'inline-block':'none';
+      authorizeButton.style.display = signedIn?'none':'inline-block';
+      signoutButton.style.display   = signedIn?'inline-block':'none';
     }
-    gapi.load('client:auth2',initClient);
+    gapi.load('client:auth2', initClient);
 
-    // Initial
+    // Erstes Rendern
     renderCalendar();
     updateHeader();
   </script>
